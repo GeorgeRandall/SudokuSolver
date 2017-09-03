@@ -41,8 +41,8 @@ namespace SudokuSolver
 		}
 
 		//Results grid.
-		private SudokuGrid.gridSquare[,] mainGrid;
-		private Stack<SudokuGrid.gridSquare[,]> snapshotStack;
+		private SudokuGrid currentGrid; //private SudokuGrid.gridSquare[,] mainGrid;
+		private Stack<SudokuGrid> snapshotStack; //private Stack<SudokuGrid.gridSquare[,]> snapshotStack;
 
 		//private int[,] snapshotResults;
 		//private bool[, ,] snapshotPos;
@@ -52,16 +52,9 @@ namespace SudokuSolver
 		{
 			InitializeComponent();
 			InitializeComponentDynamic();
-			mainGrid = new SudokuGrid.gridSquare[9, 9];
-
-			for (int i = 0; i < 9; i++)
-			{
-				for (int j = 0; j < 9; j++)
-				{
-					mainGrid[i, j] = new SudokuGrid.gridSquare(i, j);
-				}
-			}
-			snapshotStack = new Stack<SudokuGrid.gridSquare[,]>();
+			
+			currentGrid = new SudokuGrid();
+			snapshotStack = new Stack<SudokuGrid>();
 			//snapshotResults = new int[9, 9];
 			//snapshotPos = new bool[9, 9, 10];
 			resetGrid();
@@ -69,13 +62,14 @@ namespace SudokuSolver
 			numericUpDown1.Maximum = testCases.Length - 1;
 		}
 
-		void resetGrid()
+		void resetGrid() //TODO probably not needed once refreshDisplay is written.
 		{
+			currentGrid = new SudokuGrid();	//mainGrid[i, j].reset();
+			
 			for (int i = 0; i < 9; i++)
 			{
 				for (int j = 0; j < 9; j++)
 				{
-					mainGrid[i, j].reset();
 					textBoxXY[i, j].Text = "";
 					textBoxXY[i, j].BackColor = System.Drawing.Color.White;
 					textBoxXY[i, j].ForeColor = System.Drawing.Color.Black;
@@ -153,17 +147,17 @@ namespace SudokuSolver
 		{
 			TextBoxXY curr = (TextBoxXY)sender;
 
-			if (!curr.handleTextChange)
+			if (!curr.handleTextChange) //TODO: variable maybe not needed after refactor
 				return;
 
 			String text = curr.Text;
-			if (text.Length < 1) //test for text entered
+			if (text.Length < 1) //test for text entered //TODO: redo this section with refreshDisplay
 			{
-				if (mainGrid[curr.X, curr.Y].KnownValue == 0)//no text, no value,  nothing to do.
+				if (currentGrid[curr.X, curr.Y] == 0)//no text, no value,  nothing to do.
 					return;
 				else //not text, but should be a value, reset back to correct text
 				{
-					curr.Text = "" + mainGrid[curr.X, curr.Y].KnownValue;
+					curr.Text = "" + currentGrid[curr.X, curr.Y];
 					return;
 				}
 			}
@@ -175,29 +169,29 @@ namespace SudokuSolver
 				return;
 			}
 			//see if just setting it to the value it is already known to be
-			if (Char.GetNumericValue(digit) == mainGrid[curr.X, curr.Y].KnownValue)
+			if (Char.GetNumericValue(digit) == currentGrid[curr.X, curr.Y])
 			{
-				curr.Text = "" + mainGrid[curr.X, curr.Y].KnownValue; //no change, just reset the text
+				curr.Text = "" + currentGrid[curr.X, curr.Y]; //no change, just reset the text. No need to refreshDisplay
 				return;
 			}
-
-			//reset the text color. other functions will sometimes change this
-			curr.ForeColor = System.Drawing.Color.Black;
 
 			//attempt to apply the new digit
-			if (!digitChanged(curr.X, curr.Y, (int)Char.GetNumericValue(digit)))
+			//if (!digitChanged(curr.X, curr.Y, (int)Char.GetNumericValue(digit)))
+			if (!currentGrid.setKnownValue(curr.X, curr.Y, (int)Char.GetNumericValue(digit)))
 			{
-				curr.Text = ""; //change rejected, clear the text
+				curr.Text = ""; //change rejected, clear the text. No other change needed.
 				return;
 			}
-			mainGrid[curr.X, curr.Y].solveType = SudokuGrid.SolveType.Entered;
-
+			
 			labelDebugInfo.Text = listPossibilities(curr.X, curr.Y); //change accepted, update possibilty list for this cell
 			//checks entire grid, if autosolve is on
-			scanGrid();
+			if (checkBoxAuto.Checked)
+				currentGrid.solve();
+				
+			refreshDisplay();
 		}
 
-		void scanGrid()
+		/*void scanGrid()
 		{
 			if (!checkBoxAuto.Checked)
 			{
@@ -347,9 +341,45 @@ namespace SudokuSolver
 			} while (foundChanges); //keep checking for number eliminations and place eliminations till nothing changes
 
 			UpdatePossibilities();
+		}*/
+		
+		private void refreshDisplay()
+		{
+			for (int i = 0; i < 9; i++)
+				for (int j = 0; j < 9; j++)
+				{
+					//reset correct background color
+					if (currentGrid.solveType(i,j) == SudokuGrid.SolveType.Invalid)
+						textBoxXY[i, j].BackColor = System.Drawing.Color.Red;
+					else
+						textBoxXY[i, j].BackColor = System.Drawing.Color.White;
+					//reset text
+					if (currentGrid[i, j] != 0)
+					{
+						restoreFonts(textBoxXY[i, j], true);
+						textBoxXY[i, j].Text = currentGrid[i, j].ToString();
+					}
+					else
+						displayPossibilities(i, j);
+					//reset text color
+					switch (currentGrid.solveType(i, j))
+					{
+						case SudokuGrid.SolveType.Unsolved:
+						case SudokuGrid.SolveType.Entered:
+							textBoxXY[i, j].ForeColor = System.Drawing.Color.Black;
+							break;
+						case SudokuGrid.SolveType.PlaceElimination:
+							textBoxXY[i, j].ForeColor = System.Drawing.Color.Red;//TODO: red means error, pick new color
+							break;
+						case SudokuGrid.SolveType.PossibilityElimination:
+							textBoxXY[i, j].ForeColor = System.Drawing.Color.Blue;
+							break;
+					}
+				}
+			labelDebugInfo.Text = "";
 		}
 
-		private bool ScanCheckDigitChanges()
+		/*private bool ScanCheckDigitChanges()
 		{
 			//force recheck of everything
 				for (int i = 0; i < 9; i++)
@@ -379,11 +409,11 @@ namespace SudokuSolver
 				}
 			} while (foundNewChanges); //do as much by number elimination as possible, before moving on to a single round of place elimination
 			return foundAnyChanges;
-		}
+		}*/
 
-		bool digitChanged(int X, int Y, int val)
+		/*bool digitChanged(int X, int Y, int val)
 		{
-			restoreFonts(textBoxXY[X, Y]);
+			//restoreFonts(textBoxXY[X, Y]);
 			if (mainGrid[X, Y].KnownValue != 0)
 				return false; //can't change already known values
 			if (!mainGrid[X, Y].isPossible(val))
@@ -406,12 +436,12 @@ namespace SudokuSolver
 				}
 
 			return true;
-		}//digitChanged()
+		}//digitChanged()*/
 
 
 		//checks for anything about a specific spot.
 		//returns true if it made any changes to the grid
-		bool check_digit(int X, int Y)
+		/*bool check_digit(int X, int Y)
 		{
 			if (mainGrid[X, Y].KnownValue != 0)
 				return false;
@@ -434,7 +464,7 @@ namespace SudokuSolver
 					}
 				}
 
-				textBoxXY[X, Y].ForeColor = System.Drawing.Color.Blue;
+				//textBoxXY[X, Y].ForeColor = System.Drawing.Color.Blue;
 				mainGrid[X, Y].solveType = SudokuGrid.SolveType.PossibilityElimination;
 
 				return true;
@@ -676,7 +706,7 @@ namespace SudokuSolver
 
 			return madeChanges;
 
-		}//void check_digit(X,Y)
+		}//void check_digit(X,Y)*/
 
 
 		//display possibility info in labelMessage whenever textbox is entered
@@ -687,9 +717,11 @@ namespace SudokuSolver
 			tb.handleTextChange = true;
 			restoreFonts(tb);
 		}
+
+		//TODO:should only be called by refreshDisplay?
 		private void restoreFonts(TextBoxXY tb, bool force = false)
 		{
-			if (mainGrid[tb.X, tb.Y].KnownValue == 0 || force)
+			if (currentGrid[tb.X, tb.Y] == 0 || force)
 			{
 				Size size = tb.Size;
 				tb.Text = "";
@@ -737,29 +769,21 @@ namespace SudokuSolver
 			String ret = "";
 			if (checkBoxDebugTools.Checked)
 				ret = "(" + X + "," + Y + ")\t";
-			for (int i = 1; i < 10; i++)
-				if (mainGrid[X, Y].isPossible(i))
-					ret += " " + i;
+			ret += currentGrid.PossibilityString(X, Y);
 			return ret;
 		}
 
 		private void buttonReset_Click(object sender, EventArgs e)
 		{
-			resetGrid();
+			//resetGrid(); //TODO: remove function?
+			currentGrid = new SudokuGrid();
+			refreshDisplay();
 			labelDebugInfo.Text = "";
 		}
 
 		private void buttonSnapShot_Click(object sender, EventArgs e)
 		{
-			SudokuGrid.gridSquare[,] snapshotGrid;
-			snapshotGrid = new SudokuGrid.gridSquare[9, 9];
-			//clone current grid into snapshot grid
-			for (int i = 0; i < 9; i++)
-				for (int j = 0; j < 9; j++)
-				{
-					snapshotGrid[i, j] = new SudokuGrid.gridSquare(mainGrid[i, j]);
-				}
-			snapshotStack.Push(snapshotGrid);
+			snapshotStack.Push(new SudokuGrid(currentGrid));
 
 			buttonRestore.Enabled = true;
 			buttonPopSnapshot.Enabled = true;
@@ -768,50 +792,16 @@ namespace SudokuSolver
 
 		private void buttonRestore_Click(object sender, EventArgs e)
 		{
-			RestoreSnapshot(snapshotStack.Peek());
-		}
-
-		private void RestoreSnapshot(SudokuGrid.gridSquare[,] snapshotGrid)
-		{
-			for (int i = 0; i < 9; i++)
-				for (int j = 0; j < 9; j++)
-				{
-					mainGrid[i, j].copy(snapshotGrid[i, j]);
-
-					//Restore correct background color
-					if (mainGrid[i,j].PossibilityCount == 0)
-						textBoxXY[i, j].BackColor = System.Drawing.Color.Red;
-					else
-						textBoxXY[i, j].BackColor = System.Drawing.Color.White;
-					//Restore text
-					if (mainGrid[i, j].KnownValue != 0)
-					{
-						restoreFonts(textBoxXY[i, j], true);
-						textBoxXY[i, j].Text = mainGrid[i, j].KnownValue.ToString();
-					}
-					else
-						displayPossibilities(i, j);
-					//Restore text color
-					switch (mainGrid[i, j].solveType)
-					{
-						case SudokuGrid.SolveType.Unsolved:
-						case SudokuGrid.SolveType.Entered:
-							textBoxXY[i, j].ForeColor = System.Drawing.Color.Black;
-							break;
-						case SudokuGrid.SolveType.PlaceElimination:
-							textBoxXY[i, j].ForeColor = System.Drawing.Color.Red;
-							break;
-						case SudokuGrid.SolveType.PossibilityElimination:
-							textBoxXY[i, j].ForeColor = System.Drawing.Color.Blue;
-							break;
-					}
-				}
-			labelDebugInfo.Text = "";
+			//RestoreSnapshot(snapshotStack.Peek());
+			currentGrid = new SudokuGrid(snapshotStack.Peek());
+			refreshDisplay();
 		}
 
 		private void buttonPopSnapshot_Click(object sender, EventArgs e)
 		{
-			RestoreSnapshot(snapshotStack.Pop());
+			currentGrid = new SudokuGrid(snapshotStack.Pop());
+			refreshDisplay();
+			
 			if (snapshotStack.Count <= 0)
 			{
 				buttonRestore.Enabled = false;
@@ -823,23 +813,25 @@ namespace SudokuSolver
 
 		private void checkBoxAuto_CheckedChanged(object sender, EventArgs e)
 		{
-			scanGrid();
+			if (checkBoxAuto.Checked)
+			{
+				currentGrid.solve();
+				refreshDisplay();
+			}
 		}
 
 		private void buttonRecheck_Click(object sender, EventArgs e)
 		{
-			//force a recheck of the entire grid
+			//force a recheck of the solution
 			//NOTE: THIS FUNCTION SHOULD HAVE NO EFFECT when scanGrid is working correctly!
-			for (int i = 0; i < 9; i++)
-				for (int j = 0; j < 9; j++)
-					mainGrid[i, j].needsRecheck();
-			scanGrid();
+			currentGrid.solve(); //TODO: force re-solve by setting needsRecheck for all elements.
+			refreshDisplay();
 		}
 
-
+		//TODO: Should only be called by refreshDisplay?
 		private void displayPossibilities(int x, int y)
 		{
-			if (mainGrid[x, y].KnownValue != 0
+			if (currentGrid[x, y] != 0
 				|| !checkBoxClutter.Checked)
 			{
 				restoreFonts( textBoxXY[x, y]);
@@ -854,23 +846,23 @@ namespace SudokuSolver
 
 		private void checkBoxClutter_CheckedChanged(object sender, EventArgs e)
 		{
-			UpdatePossibilities();
+			//UpdatePossibilities();
+			refreshDisplay();
 		}
 
-		private void UpdatePossibilities()
+		/*private void UpdatePossibilities()
 		{
 			for (int i = 0; i < 9; i++)
 				for (int j = 0; j < 9; j++)
 				{
 					displayPossibilities(i, j);
 				}
-		}
+		}*/
 
 		private void checkBoxDebugTools_CheckedChanged(object sender, EventArgs e)
 		{
 			panelDebugTools.Visible = checkBoxDebugTools.Checked;
 			ResetSize();
-			UpdatePossibilities();
 		}
 
 		struct testCase
@@ -948,6 +940,7 @@ namespace SudokuSolver
 
 			TimeSpan sum = TimeSpan.Zero;
 
+			//TODO: add option for this to debug gui
 			//for (int i = 0; i < 100; i++) //uncomment to run test 100 times for better time comparisons
 			{
 				resetGrid();
@@ -958,10 +951,11 @@ namespace SudokuSolver
 				timer.Start();
 				for (int j = 0; j < test.X.Length; j++)
 				{
-					digitChanged(test.X[j], test.Y[j], test.n[j]);
+					currentGrid.setKnownValue(test.X[j], test.Y[j], test.n[j]);
 				}
 
-				scanGrid();
+				currentGrid.solve(); //TODO: ?call solve after each number to better represent user solve times?
+				refreshDisplay();
 				
 				timer.Stop();
 
@@ -985,11 +979,11 @@ namespace SudokuSolver
 			{
 				for (int j = 0; j < 9; j++)
 				{
-					if (mainGrid[i, j].solveType == SudokuGrid.SolveType.Entered)
+					if (currentGrid.solveType( i, j) == SudokuGrid.SolveType.Entered)
 					{
 						X += i.ToString() + ", ";
 						Y += j.ToString() + ", ";
-						n += mainGrid[i, j].KnownValue.ToString() + ", ";
+						n += currentGrid[i, j].ToString() + ", ";
 					}
 				}
 			}
