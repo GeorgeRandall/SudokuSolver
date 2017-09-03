@@ -12,10 +12,13 @@ namespace SudokuSolver
 			Unsolved,
 			Entered,
 			PlaceElimination, //red
-			PossibilityElimination //blue
+			PossibilityElimination, //blue
+			Invalid //red background
 		}
 
+		//helper class
 		//@TODO: make private when done pulling solve logic from Form1
+		//@TODO: clean up
 		public class gridSquare
 		{
 			int x; //these might not be needed, but they can stay for now
@@ -104,7 +107,9 @@ namespace SudokuSolver
 					if (knownValue == value)
 						throw new Exception("wasting time"); //TODO: replace with simple return
 					knownValue = value;
+					recheck = true;
 
+					//eliminate all other possibilities
 					for (int i = 1; i < 10; i++)
 						eliminate(i);
 				}
@@ -146,6 +151,18 @@ namespace SudokuSolver
 				get { return possCount; }
 			}
 
+			public string PossibilityString
+			{
+				get
+				{
+					string ret = "";
+					for (int i = 1; i < 10; i++)
+						if (isPossible(i))
+							ret += " " + i;
+					return ret;
+
+				}
+			}
 		}
 
 
@@ -169,21 +186,68 @@ namespace SudokuSolver
 
 		private gridSquare[,] solveGrid;
 
+		/// <summary>
+		/// index access to known values
+		/// </summary>
+		/// <param name="x">x index, 0-8</param>
+		/// <param name="y">y  index, 0-8</param>
+		/// <returns>solved value 1-9, or 0 when unknown</returns>
 		public int this[int x, int y]
 		{
-			get { return solveGrid[x, y].KnownValue; }
-			set
+			//@TODO: validate all parameters
+		    get { return solveGrid[x, y].KnownValue; }
+		}
+
+		/// <summary>
+		/// Sets the known value in the grid, if possible. Updates possibilities, but does no other solving
+		/// </summary>
+		/// <param name="x">x index, 0-8</param>
+		/// <param name="y">y index, 0-8</param>
+		/// <param name="value">known value, 1-9</param>
+		/// <returns>true if value was accepted</returns>
+		public bool setKnownValue(int x, int y, int value)
+		{
+			//@TODO: validate all parameters
+			//validate input, but don't try to solve
+			if (solveGrid[x, y].KnownValue == value)
+				return true; //nothing to do
+			if (solveGrid[x, y].isPossible(value))
 			{
-				//validate input, but don't solve
-				if (solveGrid[x, y].KnownValue == value)
-					return; //nothing to do
-				if (solveGrid[x, y].isPossible(value))
-				{
-					solveGrid[x, y].KnownValue = value;
-					solveGrid[x, y].needsRecheck();
-					solveGrid[x, y].solveType = SolveType.Entered;
-				}
+				solveGrid[x, y].solveType = SolveType.Entered;
+				solveGrid[x, y].KnownValue = value;
+				eliminate(x, y);
+				return true;
 			}
+
+			return false; 
+		}
+
+		public SolveType solveType(int x, int y)
+		{
+			return solveGrid[x, y].solveType;
+		}
+
+		public String PossibilityString(int x, int y)
+		{
+			return solveGrid[x, y].PossibilityString;
+		}
+
+		//eliminate other grid squares based on known value of solveGrid[x,y]
+		private void eliminate(int x, int y)
+		{
+			int val = solveGrid[x, y].KnownValue;
+			//eliminate value across its row, col
+			for (int i = 0; i < 9; i++)
+			{
+				solveGrid[x, i].eliminate(val);
+				solveGrid[i, y].eliminate(val);
+			}
+			//eliminate value in its square
+			for (int i = x - x % 3; i < x - x % 3 + 3; i++)
+				for (int j = y - y % 3; j < y - y % 3 + 3; j++)
+				{
+					solveGrid[i, j].eliminate(val);
+				}
 		}
 
 		/// <summary>
