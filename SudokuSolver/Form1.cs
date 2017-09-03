@@ -44,8 +44,8 @@ namespace SudokuSolver
 		private SudokuGrid.gridSquare[,] mainGrid;
 		private Stack<SudokuGrid.gridSquare[,]> snapshotStack;
 
-		private int[,] snapshotResults;
-		private bool[, ,] snapshotPos;
+		//private int[,] snapshotResults;
+		//private bool[, ,] snapshotPos;
 		private TextBoxXY[,] textBoxXY;
 
 		public Form1()
@@ -62,8 +62,8 @@ namespace SudokuSolver
 				}
 			}
 			snapshotStack = new Stack<SudokuGrid.gridSquare[,]>();
-			snapshotResults = new int[9, 9];
-			snapshotPos = new bool[9, 9, 10];
+			//snapshotResults = new int[9, 9];
+			//snapshotPos = new bool[9, 9, 10];
 			resetGrid();
 
 			numericUpDown1.Maximum = testCases.Length - 1;
