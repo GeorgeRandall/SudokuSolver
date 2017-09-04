@@ -261,6 +261,16 @@ namespace SudokuSolver
 		}
 
 		/// <summary>
+		/// Some optimizations to shortcut redundant checks could have bugs that prevent further solving.
+		/// Reset all of those to allow retesting to show any such  bugs.
+		/// </summary>
+		public void dubug_resetOptimizations()
+		{
+			//TODO:reset any optimizations for testing
+			throw new NotImplementedException();
+		}
+
+		/// <summary>
 		/// Solve as much of the puzzle as possible from current information
 		/// </summary>
 		/// <returns> true only if more of the puzzle was solved</returns>

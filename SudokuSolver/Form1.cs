@@ -798,8 +798,9 @@ namespace SudokuSolver
 		private void buttonRecheck_Click(object sender, EventArgs e)
 		{
 			//force a recheck of the solution
-			//NOTE: THIS FUNCTION SHOULD HAVE NO EFFECT when scanGrid is working correctly!
-			currentGrid.solve(); //TODO: somehow force re-solve by setting needsRecheck for all elements.
+			//NOTE: THIS FUNCTION SHOULD HAVE NO EFFECT when solve() is working correctly!
+			currentGrid.dubug_resetOptimizations();
+			currentGrid.solve(); 
 			refreshDisplay();
 		}
 
