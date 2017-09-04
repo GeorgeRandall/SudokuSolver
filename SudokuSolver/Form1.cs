@@ -8,7 +8,6 @@ using System.Text;
 using System.Windows.Forms;
 using System.Collections;
 
-//@todo - Refactor all the grid logic out into another class. This class should only contain input and display code.
 
 namespace SudokuSolver
 {
@@ -40,12 +39,9 @@ namespace SudokuSolver
 			}
 		}
 
-		//Results grid.
 		private SudokuGrid currentGrid; //private SudokuGrid.gridSquare[,] mainGrid;
 		private Stack<SudokuGrid> snapshotStack; //private Stack<SudokuGrid.gridSquare[,]> snapshotStack;
 
-		//private int[,] snapshotResults;
-		//private bool[, ,] snapshotPos;
 		private TextBoxXY[,] textBoxXY;
 
 		public Form1()
@@ -55,27 +51,9 @@ namespace SudokuSolver
 			
 			currentGrid = new SudokuGrid();
 			snapshotStack = new Stack<SudokuGrid>();
-			//snapshotResults = new int[9, 9];
-			//snapshotPos = new bool[9, 9, 10];
-			resetGrid();
+			refreshDisplay();
 
 			numericUpDown1.Maximum = testCases.Length - 1;
-		}
-
-		void resetGrid() //TODO probably not needed once refreshDisplay is written.
-		{
-			currentGrid = new SudokuGrid();	//mainGrid[i, j].reset();
-			
-			for (int i = 0; i < 9; i++)
-			{
-				for (int j = 0; j < 9; j++)
-				{
-					textBoxXY[i, j].Text = "";
-					textBoxXY[i, j].BackColor = System.Drawing.Color.White;
-					textBoxXY[i, j].ForeColor = System.Drawing.Color.Black;
-					displayPossibilities(i, j);
-				}
-			}
 		}
 
 		private const float fontSize = 18f;
@@ -142,12 +120,11 @@ namespace SudokuSolver
 				this.Size = new Size(panel1.Location.X * 2 + panel1.Size.Width + panel1.Margin.Size.Width, panelDebugTools.Location.Y + panelDebugTools.Size.Height + 64);
 		}
 
-
 		private void textBoxXY_TextChanged(object sender, EventArgs e)
 		{
 			TextBoxXY curr = (TextBoxXY)sender;
 
-			if (!curr.handleTextChange) //TODO: variable maybe not needed after refactor
+			if (!curr.handleTextChange)
 				return;
 
 			String text = curr.Text;
@@ -155,9 +132,9 @@ namespace SudokuSolver
 			{
 				if (currentGrid[curr.X, curr.Y] == 0)//no text, no value,  nothing to do.
 					return;
-				else //not text, but should be a value, reset back to correct text
+				else //not text, but should be a known value
 				{
-					curr.Text = "" + currentGrid[curr.X, curr.Y];
+					curr.Text = "" + currentGrid[curr.X, curr.Y]; //just reset text. No need to refreshDisplay
 					return;
 				}
 			}
@@ -165,7 +142,7 @@ namespace SudokuSolver
 			char digit = text[0];
 			if (!Char.IsDigit(digit) || digit == '0')
 			{
-				curr.Text = ""; //not a digit, delete it
+				curr.Text = ""; //not a digit, delete text. No need to refreshDisplay
 				return;
 			}
 			//see if just setting it to the value it is already known to be
@@ -176,19 +153,19 @@ namespace SudokuSolver
 			}
 
 			//attempt to apply the new digit
-			//if (!digitChanged(curr.X, curr.Y, (int)Char.GetNumericValue(digit)))
 			if (!currentGrid.setKnownValue(curr.X, curr.Y, (int)Char.GetNumericValue(digit)))
 			{
-				curr.Text = ""; //change rejected, clear the text. No other change needed.
+				curr.Text = ""; //change rejected, clear the text. No need to refreshDisplay
 				return;
 			}
-			
-			labelDebugInfo.Text = listPossibilities(curr.X, curr.Y); //change accepted, update possibilty list for this cell
-			//checks entire grid, if autosolve is on
+
+			labelDebugInfo.Text = listPossibilities(curr.X, curr.Y); //force update possibilty list for this cell, since this cell has focus
+			//change accepted, check entire grid, if autosolve is on
 			if (checkBoxAuto.Checked)
 				currentGrid.solve();
 				
 			refreshDisplay();
+			
 		}
 
 		/*void scanGrid()
@@ -342,7 +319,8 @@ namespace SudokuSolver
 
 			UpdatePossibilities();
 		}*/
-		
+
+		//Resetting everything is fast enough that it is not worth the maintanance risk to update the display piecemeal
 		private void refreshDisplay()
 		{
 			for (int i = 0; i < 9; i++)
@@ -376,7 +354,6 @@ namespace SudokuSolver
 							break;
 					}
 				}
-			labelDebugInfo.Text = "";
 		}
 
 		/*private bool ScanCheckDigitChanges()
@@ -708,7 +685,6 @@ namespace SudokuSolver
 
 		}//void check_digit(X,Y)*/
 
-
 		//display possibility info in labelMessage whenever textbox is entered
 		private void textBoxXY_Enter(object sender, EventArgs e)
 		{
@@ -718,7 +694,7 @@ namespace SudokuSolver
 			restoreFonts(tb);
 		}
 
-		//TODO:should only be called by refreshDisplay?
+		//restore Font to normal size for number display/entry
 		private void restoreFonts(TextBoxXY tb, bool force = false)
 		{
 			if (currentGrid[tb.X, tb.Y] == 0 || force)
@@ -736,34 +712,36 @@ namespace SudokuSolver
 			TextBoxXY tb = (TextBoxXY)sender;
 			tb.handleTextChange = false;
 			displayPossibilities(tb.X, tb.Y);
+			labelDebugInfo.Text = "";
 		}
 
 		//make arrow keys move between text boxes for easier entry
 		private void textBoxXY_KeyDown(object sender, KeyEventArgs e)
 		{
 			TextBoxXY tb = (TextBoxXY)sender;
-			//don't let text box handle arrow key presses
 			if (e.KeyValue == 37 || e.KeyValue == 38 || e.KeyValue == 39 || e.KeyValue == 40)
+			{
+				//don't let text box handle arrow key presses
 				e.SuppressKeyPress = true;
-			else
-				return;
 
-			//handle left arrow
-			if (e.KeyValue == 37 && tb.X > 0)
-				textBoxXY[tb.X - 1, tb.Y].Focus();
-			//right arrow
-			if (e.KeyValue == 39 && tb.X < 8)
-				textBoxXY[tb.X + 1, tb.Y].Focus();
-			//up arrow
-			if (e.KeyValue == 38 && tb.Y > 0)
-				textBoxXY[tb.X, tb.Y - 1].Focus();
-			//down arrow
-			if (e.KeyValue == 40 && tb.Y < 8)
-				textBoxXY[tb.X, tb.Y + 1].Focus();
+				//handle left arrow
+				if (e.KeyValue == 37 && tb.X > 0)
+					textBoxXY[tb.X - 1, tb.Y].Focus();
+				//right arrow
+				if (e.KeyValue == 39 && tb.X < 8)
+					textBoxXY[tb.X + 1, tb.Y].Focus();
+				//up arrow
+				if (e.KeyValue == 38 && tb.Y > 0)
+					textBoxXY[tb.X, tb.Y - 1].Focus();
+				//down arrow
+				if (e.KeyValue == 40 && tb.Y < 8)
+					textBoxXY[tb.X, tb.Y + 1].Focus();
+			}
 
+			return;
 		}
 
-		//lists the possibilites for this location in the message box
+		//returns a string with the coordinates and a list of possibilites for this location
 		string listPossibilities(int X, int Y)
 		{
 			String ret = "";
@@ -775,10 +753,8 @@ namespace SudokuSolver
 
 		private void buttonReset_Click(object sender, EventArgs e)
 		{
-			//resetGrid(); //TODO: remove function?
 			currentGrid = new SudokuGrid();
 			refreshDisplay();
-			labelDebugInfo.Text = "";
 		}
 
 		private void buttonSnapShot_Click(object sender, EventArgs e)
@@ -792,7 +768,6 @@ namespace SudokuSolver
 
 		private void buttonRestore_Click(object sender, EventArgs e)
 		{
-			//RestoreSnapshot(snapshotStack.Peek());
 			currentGrid = new SudokuGrid(snapshotStack.Peek());
 			refreshDisplay();
 		}
@@ -824,11 +799,10 @@ namespace SudokuSolver
 		{
 			//force a recheck of the solution
 			//NOTE: THIS FUNCTION SHOULD HAVE NO EFFECT when scanGrid is working correctly!
-			currentGrid.solve(); //TODO: force re-solve by setting needsRecheck for all elements.
+			currentGrid.solve(); //TODO: somehow force re-solve by setting needsRecheck for all elements.
 			refreshDisplay();
 		}
 
-		//TODO: Should only be called by refreshDisplay?
 		private void displayPossibilities(int x, int y)
 		{
 			if (currentGrid[x, y] != 0
@@ -846,18 +820,8 @@ namespace SudokuSolver
 
 		private void checkBoxClutter_CheckedChanged(object sender, EventArgs e)
 		{
-			//UpdatePossibilities();
 			refreshDisplay();
 		}
-
-		/*private void UpdatePossibilities()
-		{
-			for (int i = 0; i < 9; i++)
-				for (int j = 0; j < 9; j++)
-				{
-					displayPossibilities(i, j);
-				}
-		}*/
 
 		private void checkBoxDebugTools_CheckedChanged(object sender, EventArgs e)
 		{
@@ -943,8 +907,7 @@ namespace SudokuSolver
 			//TODO: add option for this to debug gui
 			//for (int i = 0; i < 100; i++) //uncomment to run test 100 times for better time comparisons
 			{
-				resetGrid();
-				labelDebugInfo.Text = "";
+				currentGrid = new SudokuGrid();
 
 				System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();
 
@@ -954,10 +917,10 @@ namespace SudokuSolver
 					currentGrid.setKnownValue(test.X[j], test.Y[j], test.n[j]);
 				}
 
-				currentGrid.solve(); //TODO: ?call solve after each number to better represent user solve times?
-				refreshDisplay();
-				
+				currentGrid.solve(); //TODO: ?call solve after each number to better represent user solve times? Add debug gui Choice?
 				timer.Stop();
+				
+				refreshDisplay();
 
 				sum += timer.Elapsed;
 			}
