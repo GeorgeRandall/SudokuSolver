@@ -197,6 +197,81 @@ namespace SudokuSolver
 		private gridSquare[,] solveGrid;
 
 		/// <summary>
+		/// access sqaures by which box they are in and which square in the box
+		/// to allow simple iteration by box
+		/// </summary>
+		/// <param name="box">which box, 0-8</param>
+		/// <param name="square">which square in that box, 0-8</param>
+		/// <returns>gridSquare that matches that location</returns>
+		private gridSquare boxCoords(int box, int square)
+		{
+			int bx = box % 3;
+			int by = box / 3;
+
+			int sx = square % 3;
+			int sy = square / 3;
+
+			//convert to full array coords
+			int X = bx * 3 + sx;
+			int Y = by * 3 + sy;
+
+			return solveGrid[X, Y];
+		}
+
+		/// <summary>
+		/// access sqaures by which column they are in and which square in the column
+		/// to allow simple iteration by column
+		/// </summary>
+		/// <param name="box">which column, 0-8</param>
+		/// <param name="square">which square in that column, 0-8</param>
+		/// <returns>gridSquare that matches that location</returns>
+		private gridSquare colCoords(int col, int square)
+		{
+			return solveGrid[col, square];
+		}
+
+		/// <summary>
+		/// access sqaures by which row they are in and which square in the row
+		/// to allow simple iteration by box
+		/// </summary>
+		/// <param name="box">which row, 0-8</param>
+		/// <param name="square">which square in that row, 0-8</param>
+		/// <returns>gridSquare that matches that location</returns>
+		private gridSquare rowCoords(int row, int square)
+		{
+			return solveGrid[square, row];
+		}
+
+		private enum iterateBy
+		{
+			Box,
+			Row,
+			Col
+		}
+
+		/// <summary>
+		/// Accesses solveGrid by selected iterateBy type
+		/// </summary>
+		/// <param name="iter">type of access coordinate converstion</param>
+		/// <param name="section">which box, col or row</param>
+		/// <param name="square">which square of that section</param>
+		/// <returns>gridSquare that matches that location</returns>
+		private gridSquare iterCoords(iterateBy iter, int section, int square)
+		{
+			switch (iter)
+			{
+				case iterateBy.Box:
+					return boxCoords(section, square);
+				case iterateBy.Col:
+					return colCoords(section, square);
+				case iterateBy.Row:
+					return rowCoords(section, square);
+				default:
+					throw new ArgumentOutOfRangeException();
+			}
+		}
+
+		/// <summary>
 		/// index access to known values
 		/// </summary>
 		/// <param name="x">x index, 0-8</param>
