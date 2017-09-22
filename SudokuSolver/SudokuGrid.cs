@@ -479,114 +479,42 @@ namespace SudokuSolver
 			bool madeChanges = false;
 			//don't loop inside this one. it's more expensive than eliminationScan and will be looped back to again if anything changes //TODO check if should loop
 
-			//First check by Cols
-			for (int X = 0; X < 9; X++) //check each col
+			//check by each section type
+			foreach (iterateBy iterType in Enum.GetValues(typeof(iterateBy)))
 			{
-				//check each number
-				for (int val = 1; val <= 9; val++) //find which digits to place detect for
-				{
-					//TODO: save which digits are done per col and shortcut past those.
-					int sum = 0;
-					int savedY = 0;
-					for (int Y = 0; Y < 9; Y++) //check in cell in the X col for the number val
-					{
-						if (solveGrid[X, Y].isPossible(val))
-						{
-							sum++;
-							savedY = Y; //remember the index of any postition of val in case it's the only one in the set
-							if (solveGrid[X, Y].KnownValue == val) //val has already been found for this row
-							{
-								//stop trying to find it
-								sum = -1;
-								break;
-							}
-							if (sum > 1)
-								break; //only works if sum equals 1, give up on current val
-						}
-					}
-					if (sum == 1)
-					{
-						//there is definitly a single valid spot for that value, put it there
-						setKnownValue(X, savedY, val);
-						madeChanges = true;
-						solveGrid[X, savedY].solveType = SudokuGrid.SolveType.PlaceElimination;
-					}
-				}
-			}
-
-			//Next check by Rows
-			for (int Y = 0; Y < 9; Y++) //check each row
-			{
-				//check each number
-				for (int val = 1; val <= 9; val++) //find which digits to place detect for
-				{
-					//TODO: save which digits are done per row and shortcut past those.
-					int sum = 0;
-					int savedX = 0;
-					for (int X = 0; X < 9; X++) //check in cell in the X col for the number val
-					{
-						if (solveGrid[X, Y].isPossible(val))
-						{
-							sum++;
-							savedX = X; //remember the index of any postition of val in case it's the only one in the set
-							if (solveGrid[X, Y].KnownValue == val) //val has already been found for this row
-							{
-								//stop trying to find it
-								sum = -1;
-								break;
-							}
-							if (sum > 1)
-								break; //only works if sum equals 1, give up on current val
-						}
-					}
-					if (sum == 1)
-					{
-						//there is definitly a single valid spot for that value, put it there
-						setKnownValue(savedX, Y, val);
-						madeChanges = true;
-						solveGrid[savedX, Y].solveType = SudokuGrid.SolveType.PlaceElimination;
-					}
-				}
-			}
-
-			//last check by boxes
-			for (int bY = 0; bY < 3; bY++)
-			{
-				for (int bX = 0; bX < 3; bX++) //check each of  the 9 boxes
+				//check each section
+				for (int sec = 0; sec < 9; sec++) //check each col
 				{
 					//check each number
 					for (int val = 1; val <= 9; val++) //find which digits to place detect for
 					{
-						//TODO: save which digits are done per box and shortcut past those.
+						//TODO: save which digits are done per section and shortcut past those.
 						int sum = 0;
-						int savedX = 0;
-						int savedY = 0;
-						for (int X = bX * 3; X < (bX + 1) * 3; X++)
+						int savedEl = 0;
+						for (int el = 0; el < 9; el++) //check each element in the section for the number val
 						{
-							for (int Y = bY * 3; Y < (bY + 1) * 3; Y++) //check in cell in the bx,bY box for the number val
+							if (iterCoords(iterType, sec, el).isPossible(val))
 							{
-								if (solveGrid[X, Y].isPossible(val))
+								sum++;
+								savedEl = el; //remember the element index of any postition of val in case it's the only one in the section
+								if (iterCoords(iterType, sec, el).KnownValue == val) //val has already been found for this section
 								{
-									sum++;
-									savedX = X; //remember the index of a postition of val in case it's the only one in the set
-									savedY = Y;
-									if (solveGrid[X, Y].KnownValue == val) //val has already been found for this box
-									{
-										//stop trying to find it
-										sum = -1;
-										break;
-									}
+									//stop trying to find it
+									sum = -1;
+									break;
 								}
 								if (sum > 1)
-									break; //only does work if sum equals 1, give up
+									break; //only works if sum equals 1, give up on current val
 							}
 						}
 						if (sum == 1)
 						{
 							//there is definitly a single valid spot for that value, put it there
-							setKnownValue(savedX, savedY, val);
+							int x = iterCoords(iterType, sec, savedEl).X;
+							int y = iterCoords(iterType, sec, savedEl).Y;
+							setKnownValue(x, y, val);
+							solveGrid[x, y].solveType = SudokuGrid.SolveType.PlaceElimination; //override default SolveType
 							madeChanges = true;
-							solveGrid[savedX, savedY].solveType = SudokuGrid.SolveType.PlaceElimination;
 						}
 					}
 				}
