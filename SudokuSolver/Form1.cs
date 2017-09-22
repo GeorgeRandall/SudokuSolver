@@ -920,14 +920,19 @@ namespace SudokuSolver
 
 				System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();
 
-				timer.Start();
+				
 				for (int j = 0; j < test.X.Length; j++)
 				{
 					currentGrid.setKnownValue(test.X[j], test.Y[j], test.n[j]);
 				}
 
-				currentGrid.solve(); //TODO: ?call solve after each number to better represent user solve times? Add debug gui Choice?
-				timer.Stop();
+				if (checkBoxAuto.Checked)
+				{
+					timer.Start();
+					currentGrid.solve(); //TODO: ?call solve after each number to better represent user solve times? Add debug gui Choice?
+					timer.Stop();
+				}
+				
 				
 				refreshDisplay();
 
