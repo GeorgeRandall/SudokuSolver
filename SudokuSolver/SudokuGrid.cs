@@ -423,7 +423,14 @@ namespace SudokuSolver
 				//placement eliminations
 				madeIterationChanges |= placementEliminationScan();
 
-				//etc...
+				// hidden set revealing
+				madeIterationChanges |= hiddenSetScan();
+
+				//set elimination
+				madeIterationChanges |= matchedSetEliminationScan();
+
+				//line/box elimination
+				madeIterationChanges |= lineBoxEliminationScan();
 
 				//set return value
 				if (madeIterationChanges)
@@ -447,7 +454,7 @@ namespace SudokuSolver
 					for (int j = 0; j < 9; j++)
 					{
 						//check if possibility elimination applies
-						if (/*solveGrid[i, j].Recheck &&*/ solveGrid[i, j].KnownValue == 0 && solveGrid[i, j].PossibilityCount == 1)
+						if (solveGrid[i, j].KnownValue == 0 && solveGrid[i, j].PossibilityCount == 1)
 						{
 							//find and save the remaining possibility
 							for (int n = 1; n <= 9; n++)
@@ -519,6 +526,218 @@ namespace SudokuSolver
 					}
 				}
 			}
+			return madeChanges;
+		}
+
+		private bool hiddenSetScan()
+		{
+			bool madeChanges = false;
+
+			//scan for sets in box, in col, in row TODO: add optimizations
+
+			//check by each section type
+			foreach (iterateBy iterType in Enum.GetValues(typeof(iterateBy)))
+			{
+				//for each section:
+				for (int s = 0; s < 9; s++)
+				{
+					//for each element in section
+					for (int e = 0; e < 9; e++)
+					{
+						HashSet<HashSet<int>> setList = iterCoords(iterType, s, e).SetList;
+
+						foreach (HashSet<int> set in setList)
+						{
+							//find a match for this set
+							int matchCount = 0;
+							//scan rest of box for match TODO: check only sqaures later in scan order
+							for (int e2 = 0; e2 < 9; e2++)
+							{
+								//if (iterCoords(iterType, s, e2).SetList.Contains(set, new gridSquare.SetOfIntEqualityComparer()))
+								foreach (int i in set)
+								{
+									if (iterCoords(iterType, s, e2).isPossible(i))
+									{
+										matchCount++;
+										break;
+									}
+								}
+								if (matchCount > set.Count) //test condition already failed, stop searching
+									break;
+							}
+
+							if (matchCount == set.Count)
+							{
+								//values in set are only valid values for matching sqaures
+								//so eliminate other values in matching sqaures
+								for (int eE = 0; eE < 9; eE++)
+								{
+									if (iterCoords(iterType, s, eE).SetList.Contains(set, new gridSquare.SetOfIntEqualityComparer()))
+									{
+										for (int i = 1; i <= 9; i++)
+										//foreach (int i in set)
+										{
+											if (!set.Contains(i))
+												madeChanges |= iterCoords(iterType, s, eE).eliminate(i);
+										}
+									}
+								}
+								break; //no other sets apply, move on
+							}
+						}
+					}
+				}
+			}
+
+			return madeChanges;
+		}
+
+		private bool matchedSetEliminationScan()
+		{
+			bool madeChanges = false;
+
+			//scan for sets in box, in col, in row TODO: add optimizations
+
+			//check by each section type
+			foreach (iterateBy iterType in Enum.GetValues(typeof(iterateBy)))
+			{
+				//for each section:
+				for (int s = 0; s < 9; s++)
+				{
+					//for each element in section
+					for (int e = 0; e < 9; e++)
+					{
+						HashSet<HashSet<int>> setList = iterCoords(iterType, s, e).SetList;
+
+						foreach (HashSet<int> set in setList)
+						{
+							//skip any set that isn't top level
+							if (set.Count != iterCoords(iterType, s, e).PossibilityCount)
+								continue;
+							//find a match for this set
+							int matchCount = 0;
+							//scan rest of box for match, moving through sqaures later in box scan order
+							for (int e2 = 0; e2 < 9; e2++)
+							{
+								//only match sets that are top level
+								if (iterCoords(iterType, s, e2).PossibilityCount == set.Count
+									&& iterCoords(iterType, s, e2).SetList.Contains(set, new gridSquare.SetOfIntEqualityComparer()))
+									matchCount++;
+							}
+
+							if (matchCount == set.Count)
+							{
+								//values in set can ONLY be in squares that contain entire set
+								//so eliminate set values all other places in box
+								for (int eE = 0; eE < 9; eE++)
+								{
+									if (iterCoords(iterType, s, eE).PossibilityCount == set.Count
+										&& iterCoords(iterType, s, eE).SetList.Contains(set, new gridSquare.SetOfIntEqualityComparer()))
+										continue;
+									foreach (int i in set)
+										madeChanges |= iterCoords(iterType, s, eE).eliminate(i);
+								}
+							}
+						}
+					}
+				}
+			}
+
+			return madeChanges;
+		}
+
+		//most eliminations that this finds are already found by matchedSetEliminationScan, but not all.
+		private bool lineBoxEliminationScan()
+		{
+			bool madeChanges = false;
+
+			//if all instances of a digit in the current box are in a single row/col
+			// then that digit must be in that row/col in this box and can't be in that row/col in any other box
+
+			//iterate over boxes
+			for (int bX = 0; bX < 3; bX++)
+			{
+				for (int bY = 0; bY < 3; bY++) //check each of  the 9 boxes
+				{
+
+					//iterate over values
+					for (int val = 1; val <= 9; val++) //find which digits to line/box detect for
+					{
+						//TODO:optimize by skipping check for solved values by seperatly storing solved values for box
+						//if val is known for any value in square, continue to next value
+
+						int[] countInCol = new int[] { 0, 0, 0 };
+						int[] countInRow = new int[] { 0, 0, 0 };
+
+						//iterate across box, adding count of value to Row and Col as found
+						for (int i = 0; i < 3; i++)
+						{
+							for (int j = 0; j < 3; j++)
+							{
+								int x = bX * 3 + i;
+								int y = bY * 3 + j;
+
+								if (solveGrid[x, y].isPossible(val))
+								{
+									countInCol[i]++;
+									countInRow[j]++;
+								}
+
+							}
+						}
+
+						//find how many rows/cols contain value
+						int colsWithVal = 0;
+						int rowsWithVal = 0;
+						int saveCol = -1;
+						int saveRow = -1;
+						for (int n = 0; n < 3; n++)
+						{
+							if (countInCol[n] > 0)
+							{
+								colsWithVal++;
+								saveCol = n;
+							}
+							if (countInRow[n] > 0)
+							{
+								rowsWithVal++;
+								saveRow = n;
+							}
+						}
+
+						//test for single column
+						if (colsWithVal == 1)
+						{
+							//saveCol is set to only row with value
+							//eliminate all possibles for value in col outside of box
+							int x = bX * 3 + saveCol;
+							for (int y = 0; y < 9; y++)
+							{
+								if (y >= bY * 3 && y <= bY * 3 + 2)
+									continue;
+								madeChanges |= solveGrid[x, y].eliminate(val);
+							}
+						}
+						//test for single row
+						if (rowsWithVal == 1)
+						{
+							//saveRow is set to only row with value
+							//eliminate all possibles for value in row outside of box
+							int y = bY * 3 + saveRow;
+							for (int x = 0; x < 9; x++)
+							{
+								if (x >= bX * 3 && x <= bX * 3 + 2)
+									continue;
+								madeChanges |= solveGrid[x, y].eliminate(val);
+							}
+						}
+					}
+
+
+				}
+
+			}
+
 			return madeChanges;
 		}
 	}
