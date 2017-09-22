@@ -17,9 +17,8 @@ namespace SudokuSolver
 		}
 
 		//helper class
-		//@TODO: make private when done pulling solve logic from Form1
 		//@TODO: clean up
-		public class gridSquare
+		private class gridSquare
 		{
 			int x; //these might not be needed, but they can stay for now
 			int y;
@@ -34,8 +33,11 @@ namespace SudokuSolver
 			//number of possibilites remaining
 			int possCount;
 
-			//set whenever possibilities at x,y are changes, cleared whenever x,y is checked.
+			//set whenever possibilities at x,y are changed, cleared whenever x,y is checked. TODO: use for future optimizations? (or remove)
 			bool recheck;
+
+			//set of possible combinations
+			HashSet<HashSet<int>> setList;
 
 			public SudokuGrid.SolveType solveType { get; set; }
 
@@ -51,8 +53,39 @@ namespace SudokuSolver
 					possibilities[i] = true;
 				possCount = 9;
 
+				initSetList();
+
 				recheck = false; //nothing needs checking to start with
 				solveType = SudokuGrid.SolveType.Unsolved;
+			}
+
+			private void initSetList()
+			{
+				//fill out setList
+				setList = new HashSet<HashSet<int>>(new gridSquare.SetOfIntEqualityComparer());
+				HashSet<int> temp;
+				for (int i1 = 1; i1 <= 9; i1++)
+				{
+					for (int i2 = i1+1; i2 <= 9; i2++)
+					{
+						//Add pairs
+						temp = new HashSet<int>();
+						temp.Add(i1);
+						temp.Add(i2);
+						setList.Add(temp);
+						////add larger sets TODO: determine how much larger of sets to add. Higher order sets add to compute time and are less likely to advance a solution
+						//for (int i3 = i2 + 1; i3 <= 9; i3++)
+						//{
+						//    //Add triples
+						//    temp = new HashSet<int>();
+						//    temp.Add(i1);
+						//    temp.Add(i2);
+						//    temp.Add(i3);
+						//    setList.Add(temp);
+						//    //TODO: add larger sets?
+						//}
+					}
+				}
 			}
 
 			public gridSquare(gridSquare toCopy)
@@ -61,7 +94,7 @@ namespace SudokuSolver
 				this.copy(toCopy);
 			}
 
-			public void copy(gridSquare toCopy)
+			private void copy(gridSquare toCopy)
 			{
 				this.x = toCopy.x;
 				this.y = toCopy.y;
@@ -73,6 +106,7 @@ namespace SudokuSolver
 
 				this.recheck = toCopy.recheck;
 				this.solveType = toCopy.solveType;
+				this.setList = new HashSet<HashSet<int>>(toCopy.setList);
 			}
 
 			public void reset()
@@ -82,6 +116,8 @@ namespace SudokuSolver
 				for (int i = 1; i <= 9; ++i)
 					possibilities[i] = true;
 				possCount = 9;
+
+				initSetList();
 
 				recheck = false; //nothing needs checking to start with
 				solveType = SudokuGrid.SolveType.Unsolved;
@@ -141,6 +177,8 @@ namespace SudokuSolver
 						possibilities[i] = false;
 						if (possCount == 0)
 							solveType = SolveType.Invalid;
+						else
+							setList.RemoveWhere(s => s.Contains(i));
 						return true;
 					}
 
@@ -165,6 +203,28 @@ namespace SudokuSolver
 
 				}
 			}
+
+			public HashSet<HashSet<int>> SetList
+			{
+				get
+				{
+					return setList; //TODO: refactor to not provide full access to member? This helper class is private to SudokuGrid class...
+				}
+			}
+
+			public class SetOfIntEqualityComparer : IEqualityComparer<HashSet<int>>
+			{
+				public bool Equals(HashSet<int> s1, HashSet<int> s2)
+				{
+					return s1.SetEquals(s2);
+				}
+
+				public int GetHashCode(HashSet<int> s)
+				{
+					return s.GetHashCode();
+				}
+			}
+
 		}
 
 
