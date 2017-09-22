@@ -105,16 +105,17 @@ namespace SudokuSolver
 
 			int panelSize = 10 * smallMargin + 4 * extraMargin + 9 * textBoxSize;
 			panel1.Size = new Size(panelSize, panelSize);
-			this.ResumeLayout(true);
-
 			panelDebugTools.Location = new Point(panelDebugTools.Location.X, panel1.Location.Y + panel1.Size.Height + panel1.Margin.Size.Height);
+			panelDebugTools.Visible = checkBoxDebugTools.Checked; 
+			
+			this.ResumeLayout(true);
 			
 			ResetSize();
 		}
 
 		private void ResetSize()
 		{
-			if(!panelDebugTools.Visible)
+			if (!checkBoxDebugTools.Checked)
 				this.Size = new Size(panel1.Location.X * 2 + panel1.Size.Width + panel1.Margin.Size.Width, panel1.Location.Y + panel1.Size.Height + 64);
 			else
 				this.Size = new Size(panel1.Location.X * 2 + panel1.Size.Width + panel1.Margin.Size.Width, panelDebugTools.Location.Y + panelDebugTools.Size.Height + 64);
