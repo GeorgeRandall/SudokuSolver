@@ -40,11 +40,12 @@
 			this.buttonPopSnapshot = new System.Windows.Forms.Button();
 			this.checkBoxClutter = new System.Windows.Forms.CheckBox();
 			this.panelDebugTools = new System.Windows.Forms.Panel();
+			this.buttonExtract = new System.Windows.Forms.Button();
 			this.numericUpDown1 = new System.Windows.Forms.NumericUpDown();
 			this.buttonTestCase = new System.Windows.Forms.Button();
 			this.labelDebugInfo = new System.Windows.Forms.Label();
 			this.checkBoxDebugTools = new System.Windows.Forms.CheckBox();
-			this.buttonExtract = new System.Windows.Forms.Button();
+			this.buttonPasteTest = new System.Windows.Forms.Button();
 			this.panelDebugTools.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
 			this.SuspendLayout();
@@ -156,6 +157,7 @@
 			// 
 			// panelDebugTools
 			// 
+			this.panelDebugTools.Controls.Add(this.buttonPasteTest);
 			this.panelDebugTools.Controls.Add(this.buttonExtract);
 			this.panelDebugTools.Controls.Add(this.numericUpDown1);
 			this.panelDebugTools.Controls.Add(this.buttonTestCase);
@@ -169,6 +171,16 @@
 			this.panelDebugTools.Size = new System.Drawing.Size(314, 89);
 			this.panelDebugTools.TabIndex = 12;
 			this.panelDebugTools.Visible = false;
+			// 
+			// buttonExtract
+			// 
+			this.buttonExtract.Location = new System.Drawing.Point(119, 61);
+			this.buttonExtract.Name = "buttonExtract";
+			this.buttonExtract.Size = new System.Drawing.Size(79, 23);
+			this.buttonExtract.TabIndex = 15;
+			this.buttonExtract.Text = "Copy Test";
+			this.buttonExtract.UseVisualStyleBackColor = true;
+			this.buttonExtract.Click += new System.EventHandler(this.buttonExtract_Click);
 			// 
 			// numericUpDown1
 			// 
@@ -207,15 +219,15 @@
 			this.checkBoxDebugTools.UseVisualStyleBackColor = true;
 			this.checkBoxDebugTools.CheckedChanged += new System.EventHandler(this.checkBoxDebugTools_CheckedChanged);
 			// 
-			// buttonExtract
+			// buttonPasteTest
 			// 
-			this.buttonExtract.Location = new System.Drawing.Point(119, 61);
-			this.buttonExtract.Name = "buttonExtract";
-			this.buttonExtract.Size = new System.Drawing.Size(110, 23);
-			this.buttonExtract.TabIndex = 15;
-			this.buttonExtract.Text = "Extract Test Case";
-			this.buttonExtract.UseVisualStyleBackColor = true;
-			this.buttonExtract.Click += new System.EventHandler(this.buttonExtract_Click);
+			this.buttonPasteTest.Location = new System.Drawing.Point(204, 61);
+			this.buttonPasteTest.Name = "buttonPasteTest";
+			this.buttonPasteTest.Size = new System.Drawing.Size(75, 23);
+			this.buttonPasteTest.TabIndex = 16;
+			this.buttonPasteTest.Text = "Paste Test";
+			this.buttonPasteTest.UseVisualStyleBackColor = true;
+			this.buttonPasteTest.Click += new System.EventHandler(this.buttonPasteTest_Click);
 			// 
 			// Form1
 			// 
@@ -261,6 +273,7 @@
 		private System.Windows.Forms.Button buttonTestCase;
 		private System.Windows.Forms.NumericUpDown numericUpDown1;
 		private System.Windows.Forms.Button buttonExtract;
+		private System.Windows.Forms.Button buttonPasteTest;
         
     }
 }

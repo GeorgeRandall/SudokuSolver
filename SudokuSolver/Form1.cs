@@ -429,8 +429,11 @@ namespace SudokuSolver
 
 		private void buttonTestCase_Click(object sender, EventArgs e)
 		{
-			testCase test = testCases[(int)numericUpDown1.Value];
+			runTestCase(testCases[(int)numericUpDown1.Value]);
+		}
 
+		private void runTestCase(testCase test)
+		{
 			TimeSpan sum = TimeSpan.Zero;
 
 			//TODO: add option for this to debug gui
@@ -440,7 +443,7 @@ namespace SudokuSolver
 
 				System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();
 
-				
+
 				for (int j = 0; j < test.X.Length; j++)
 				{
 					currentGrid.setKnownValue(test.X[j], test.Y[j], test.n[j]);
@@ -452,14 +455,15 @@ namespace SudokuSolver
 					currentGrid.solve(); //TODO: ?call solve after each number to better represent user solve times? Add debug gui Choice?
 					timer.Stop();
 				}
-				
-				
+
+
 				refreshDisplay();
 
 				sum += timer.Elapsed;
 			}
 			labelDebugInfo.Text = "Elapsed:" + sum.ToString();
 		}
+
 
 		private void buttonExtract_Click(object sender, EventArgs e)
 		{
@@ -491,6 +495,74 @@ namespace SudokuSolver
 
 			Clipboard.SetText(X + Y + n);
 			MessageBox.Show(X + Y + n + "\r\nData copied to clipboard");
+		}
+
+		private void buttonPasteTest_Click(object sender, EventArgs e)
+		{
+			//X = new int[] { 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 7, 7, 7, 7, 8, },
+			//Y = new int[] { 3, 4, 5, 0, 2, 3, 5, 8, 0, 1, 3, 0, 1, 2, 3, 4, 6, 7, 0, 1, 2, 3, 4, 6, 7, 0, 1, 3, 4, 5, 6, 7, 3, 4, 5, 6, 7, 3, 4, 5, 8, 6, },
+			//n = new int[] { 2, 3, 1, 3, 4, 6, 8, 2, 2, 8, 4, 8, 6, 7, 9, 5, 1, 4, 9, 4, 3, 8, 1, 2, 7, 1, 5, 3, 4, 7, 8, 6, 7, 2, 9, 4, 5, 5, 8, 3, 6, 3, },
+			string testCase = Clipboard.GetText();
+			//strip out everythign execept numbers, commas, and newlines
+			if (testCase.Length == 0)
+			{
+				MessageBox.Show("No text in clipboard");
+				return;
+			}
+
+			HashSet<char> allowed = new HashSet<char>("1234567890,\n");
+			StringBuilder builder = new StringBuilder(testCase.Length);
+
+			for (int i = 0; i < testCase.Length; i++)
+			{
+				if(allowed.Contains(testCase[i]))
+				{
+					builder.Append(testCase[i]);
+				}
+			}
+
+			testCase = builder.ToString();
+			if (testCase.Length == 0)
+			{
+				MessageBox.Show("No VALID text in clipboard");
+				return;
+			}
+
+			string[] splitTestCase = testCase.Split(new char[]{'\n'}, System.StringSplitOptions.RemoveEmptyEntries);
+
+			if(splitTestCase.Length != 3)
+			{
+				MessageBox.Show("Needs exactly 3 value lists: X,Y,n");
+				return;
+			}
+
+			int[] xArray;
+			int[] yArray;
+			int[] nArray;
+
+			try{
+				xArray = splitTestCase[0].Split(new char[]{','}, StringSplitOptions.RemoveEmptyEntries).Select(str => int.Parse(str)).ToArray();
+				yArray = splitTestCase[1].Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(str => int.Parse(str)).ToArray();
+				nArray = splitTestCase[2].Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(str => int.Parse(str)).ToArray();
+			}
+			catch{
+				MessageBox.Show("Could not parse values");
+				return;
+			}
+
+			if(xArray.Length != yArray.Length || yArray.Length != nArray.Length)
+			{
+				MessageBox.Show("value lists must be same length");
+				return;
+			}
+
+			if (!xArray.All(x => x >= 0 && x < 9) || !yArray.All(x => x >= 0 && x < 9) || !nArray.All(x => x > 0 && x <= 9))
+			{
+				MessageBox.Show("Value out of range");
+				return;
+			}
+
+			runTestCase(new testCase{X = xArray, Y= yArray, n=nArray});
 		}
 
 
