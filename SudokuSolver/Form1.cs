@@ -375,14 +375,14 @@ namespace SudokuSolver
 				Y = new int[] { 0, 1, 2, 0, 1, 0, 0, 1, 1, },
 				n = new int[] { 1, 2, 3, 4, 5, 6, 7, 6, 7, },
 			},
-			//2. full puzzle I'm still trying to solve. was used to discover super pair technique
+			//2. full puzzle I'm still trying to solve. was used to discover pair set technique. Solved after adding xwing
 			new testCase
 			{
 				X = new int[] { 4, 8, 0, 3, 5, 7, 0, 2, 5, 6, 1, 5, 0, 4, 8, 3, 7, 2, 3, 6, 8, 1, 3, 5, 8, 0, 4},
 				Y = new int[] { 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4, 4, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 8, 8},
 				n = new int[] { 8, 1, 6, 2, 1, 9, 2, 9, 3, 8, 4, 9, 3, 4, 8, 6, 7, 8, 5, 6, 3, 3, 1, 8, 5, 4, 6}
 			},
-			//3. should be able to compute that (2,1) = 2 because of 4's using "X-wing technique"
+			//3. is able to compute that (2,1) = 2 because of 4's using "X-wing technique". otherwise still unsolved.
 			new testCase
 			{
 				X = new int[] { 0, 0, 0, 1, 2, 2, 2, 2, 3, 4, 4, 5, 5, 6, 7, 8, 8, 8, },
@@ -410,7 +410,7 @@ namespace SudokuSolver
 				Y = new int[] { 2, 4, 5, 8, 7, 2, 3, 8, 1, 3, 4, 0, 2, 4, 6, 8, 4, 5, 7, 0, 5, 6, 1, 0, 3, 4, 6, },
 				n = new int[] { 1, 5, 7, 6, 5, 4, 9, 8, 4, 5, 9, 3, 9, 1, 2, 4, 3, 4, 7, 4, 9, 1, 7, 8, 6, 4, 5, },
 			},
-			//7. new full puzzle. unsolved.
+			//7. new full puzzle. Solved after adding xwing
 			new testCase
 			{
 				X = new int[] { 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5, 5, 6, 6, 7, 7, 8, 8, 8, 8, },
@@ -418,7 +418,7 @@ namespace SudokuSolver
 				n = new int[] { 6, 2, 3, 4, 4, 3, 9, 8, 2, 6, 5, 1, 8, 4, 6, 1, 3, 9, 8, 8, 6, 9, 7, 1, 8, 3, 5, },
 			},
 
-			//8. new full puzzle. unsolved. Should be helped by set matching
+			//8. new full puzzle. helped by set matching.  Solved after adding xwing
 			new testCase
 			{
 				X = new int[] { 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 3, 4, 4, 5, 5, 5, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, },

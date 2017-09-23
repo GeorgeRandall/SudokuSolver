@@ -432,6 +432,9 @@ namespace SudokuSolver
 				//line/box elimination
 				madeIterationChanges |= lineBoxEliminationScan();
 
+				//xwing elimination
+				madeIterationChanges |= xwingEliminationScan();
+
 				//set return value
 				if (madeIterationChanges)
 					madeChanges = true;
@@ -594,6 +597,7 @@ namespace SudokuSolver
 
 		private bool matchedSetEliminationScan()
 		{
+			//TODO: figure out how to make this work for triples that are locked, but not exact set matches...
 			bool madeChanges = false;
 
 			//scan for sets in box, in col, in row TODO: add optimizations
@@ -735,6 +739,157 @@ namespace SudokuSolver
 
 
 				}
+
+			}
+
+			return madeChanges;
+		}
+
+		private bool xwingEliminationScan()
+		{
+			bool madeChanges = false;
+
+			//test each value for matches
+			for (int val = 1; val <= 9; val++)
+			{
+				//scan for a column that contains exactly 2 squares where val is possible
+				for (int x1  = 0; x1 < 8; x1++)
+				{
+					int col1 = -1;
+					int col2 = -1;
+					int row1 = -1;
+					int row2 = -1;
+					//scan this column for the two vals
+					int count = 0;
+					for (int y = 0; y < 9; y++)
+					{
+						if (solveGrid[x1, y].isPossible(val))
+						{
+							count++;
+							if (count == 1)
+								row1 = y;
+							else if (count == 2)
+								row2 = y;
+							else
+								break;
+						}
+					}
+
+					if (count == 2)
+					{
+						col1 = x1;
+						// result found. search for matching column, starting on the next column
+						for (int x2 = col1 + 1; x2 < 9; x2++)
+						{
+							//scan this column for the two values, in the correct places
+							count = 0;
+							for (int y = 0; y < 9; y++)
+							{
+								if (solveGrid[x2, y].isPossible(val))
+								{
+									if (y == row1 || y == row2)
+									{
+										count++;
+									}
+									else
+									{
+										count = -1; //this column has a match out of place. force count to error state
+										break;
+									}
+								}
+							}
+
+							if (count == 2)
+							{
+								col2 = x2;
+								break;
+							}
+						}
+						//no matching columns found or only one column matched. continue to next val
+						if (col1 == -1 || col2 == -1)
+							continue;
+
+						//found exactly 2 columns with 2 squares with val. eliminate val from all other rows
+						for (int x = 0; x < 9; x++)
+						{
+							if (x == col1 || x == col2)
+								continue;
+							madeChanges |= solveGrid[x, row1].eliminate(val);
+							madeChanges |= solveGrid[x, row2].eliminate(val);
+						}
+						//let x1 continue to loop, other x's for the same val might exist
+					}
+				}
+
+				//scan for a row that contains exactly 2 squares where val is possible
+				for (int y1 = 0; y1 < 8; y1++)
+				{
+					int row1 = -1;
+					int row2 = -1;
+					int col1 = -1;
+					int col2 = -1;
+					//scan this row for the two vals
+					int count = 0;
+					for (int x = 0; x < 9; x++)
+					{
+						if (solveGrid[x, y1].isPossible(val))
+						{
+							count++;
+							if (count == 1)
+								col1 = x;
+							else if (count == 2)
+								col2 = x;
+							else
+								break;
+						}
+					}
+
+					if (count == 2)
+					{
+						row1 = y1;
+						// result found. search for matching row, starting on the next row
+						for (int y2 = row1 + 1; y2 < 9; y2++)
+						{
+							//scan this column for the two values, in the correct places
+							count = 0;
+							for (int x = 0; x < 9; x++)
+							{
+								if (solveGrid[x, y2].isPossible(val))
+								{
+									if (x == col1 || x == col2)
+									{
+										count++;
+									}
+									else
+									{
+										count = -1; //this column has a match out of place. force count to error state
+										break;
+									}
+								}
+							}
+
+							if (count == 2)
+							{
+								row2 = y2;
+								break;
+							}
+						}
+						//no matching columns found or only one column matched. continue to next val
+						if (row1 == -1 || row2 == -1)
+							continue;
+
+						//found exactly 2 columns with 2 squares with val. eliminate val from all other rows
+						for (int y = 0; y < 9; y++)
+						{
+							if (y == row1 || y == row2)
+								continue;
+							madeChanges |= solveGrid[col1, y].eliminate(val);
+							madeChanges |= solveGrid[col2, y].eliminate(val);
+						}
+						//let x1 continue to loop, other x's for the same val might exist
+					}
+				}
+
 
 			}
 
