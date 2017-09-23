@@ -16,6 +16,102 @@ namespace SudokuSolver
 			Invalid //red background
 		}
 
+		/// <summary>
+		/// Create and maintain a HashSet of possible combinations.
+		/// </summary>
+		private class PossibilitySet : HashSet<HashSet<int>>
+		{
+			/// <summary>
+			/// Basic constructor. Find sets for all unordered
+			/// combinations of Elements up to maxLen in length.
+			/// </summary>
+			/// <param name="elements">Elements to combine into sets</param>
+			/// <param name="maxLen">Max length of sets. </param>
+			public PossibilitySet(HashSet<int> elements, int maxLen)
+			{
+				fillsets(elements, maxLen);
+				//remove the singletons that where added for filling
+				this.RemoveWhere(s => s.Count == 1);
+			}
+
+			//copy constructor
+			public PossibilitySet(PossibilitySet toCopy)
+			{
+				foreach (HashSet<int> set in toCopy)
+				{
+					Add(new HashSet<int>(set));
+				}
+			}
+
+			private void fillsets(HashSet<int> elements, int maxLen)
+			{
+				int i = elements.ElementAt(0);
+				elements.Remove(i);
+				HashSet<int> temp = new HashSet<int> { i };
+				HashSet<HashSet<int>> workingSet = new HashSet<HashSet<int>>();
+
+				workingSet.Add(temp);
+				foreach (HashSet<int> set in this)
+				{
+					if (set.Count < maxLen)
+					{
+						temp = new HashSet<int>(set);
+						temp.Add(i);
+						workingSet.Add(temp);
+					}
+				}
+				this.UnionWith(workingSet);
+
+				if (elements.Count != 0)
+				{
+					fillsets(elements, maxLen);
+				}
+			}
+
+			/// <summary>
+			/// Eliminates all sets that contain i
+			/// </summary>
+			/// <param name="i">value to eleminate all sets of</param>
+			public void eliminate(int i)
+			{
+				RemoveWhere(s => s.Contains(i));
+			}
+
+			private class SetOfIntEqualityComparer : IEqualityComparer<HashSet<int>>
+			{
+				public bool Equals(HashSet<int> s1, HashSet<int> s2)
+				{
+					return s1.SetEquals(s2);
+				}
+
+				public int GetHashCode(HashSet<int> s)
+				{
+					return s.GetHashCode();
+				}
+			}
+
+			/// <summary>
+			/// Determines whether a sequence contains a specified
+			/// element by using a special built in IEqualityComparer.
+			/// </summary>
+			/// <param name="value">The value to locate</param>
+			/// <returns>true if the source sequence contains an element that has the specified value;
+			//     otherwise, false.</returns>
+			public new bool Contains(HashSet<int> value)
+			{
+				return ((HashSet<HashSet<int>>)this).Contains(value, new SetOfIntEqualityComparer());
+			}
+
+			/// <summary>
+			/// removes all sets containt the value
+			/// </summary>
+			/// <param name="value">the value to remove</param>
+			public void removeAllContaining(int value)
+			{
+				RemoveWhere(s => s.Contains(value));
+			}
+		}
+
 		//helper class
 		//@TODO: clean up
 		private class gridSquare
@@ -37,7 +133,7 @@ namespace SudokuSolver
 			bool recheck;
 
 			//set of possible combinations
-			HashSet<HashSet<int>> setList;
+			PossibilitySet setList;
 
 			public SudokuGrid.SolveType solveType { get; set; }
 
@@ -62,30 +158,7 @@ namespace SudokuSolver
 			private void initSetList()
 			{
 				//fill out setList
-				setList = new HashSet<HashSet<int>>(new gridSquare.SetOfIntEqualityComparer());
-				HashSet<int> temp;
-				for (int i1 = 1; i1 <= 9; i1++)
-				{
-					for (int i2 = i1+1; i2 <= 9; i2++)
-					{
-						//Add pairs
-						temp = new HashSet<int>();
-						temp.Add(i1);
-						temp.Add(i2);
-						setList.Add(temp);
-						////add larger sets TODO: determine how much larger of sets to add. Higher order sets add to compute time and are less likely to advance a solution
-						//for (int i3 = i2 + 1; i3 <= 9; i3++)
-						//{
-						//    //Add triples
-						//    temp = new HashSet<int>();
-						//    temp.Add(i1);
-						//    temp.Add(i2);
-						//    temp.Add(i3);
-						//    setList.Add(temp);
-						//    //TODO: add larger sets?
-						//}
-					}
-				}
+				setList = new PossibilitySet(new HashSet<int> { 1, 2, 3, 4, 5, 6, 7, 8, 9 }, 4);
 			}
 
 			public gridSquare(gridSquare toCopy)
@@ -106,7 +179,7 @@ namespace SudokuSolver
 
 				this.recheck = toCopy.recheck;
 				this.solveType = toCopy.solveType;
-				this.setList = new HashSet<HashSet<int>>(toCopy.setList);
+				this.setList = new PossibilitySet(toCopy.setList);
 			}
 
 			public void reset()
@@ -178,7 +251,7 @@ namespace SudokuSolver
 						if (possCount == 0)
 							solveType = SolveType.Invalid;
 						else
-							setList.RemoveWhere(s => s.Contains(i));
+							setList.removeAllContaining(i);
 						return true;
 					}
 
@@ -204,27 +277,13 @@ namespace SudokuSolver
 				}
 			}
 
-			public HashSet<HashSet<int>> SetList
+			public PossibilitySet SetList
 			{
 				get
 				{
-					return setList; //TODO: refactor to not provide full access to member? This helper class is private to SudokuGrid class...
+					return setList; //TODO? refactor to not provide full access to member? This helper class is private to SudokuGrid class...
 				}
 			}
-
-			public class SetOfIntEqualityComparer : IEqualityComparer<HashSet<int>>
-			{
-				public bool Equals(HashSet<int> s1, HashSet<int> s2)
-				{
-					return s1.SetEquals(s2);
-				}
-
-				public int GetHashCode(HashSet<int> s)
-				{
-					return s.GetHashCode();
-				}
-			}
-
 		}
 
 
@@ -575,7 +634,7 @@ namespace SudokuSolver
 								//so eliminate other values in matching sqaures
 								for (int eE = 0; eE < 9; eE++)
 								{
-									if (iterCoords(iterType, s, eE).SetList.Contains(set, new gridSquare.SetOfIntEqualityComparer()))
+									if (iterCoords(iterType, s, eE).SetList.Contains(set))
 									{
 										for (int i = 1; i <= 9; i++)
 										//foreach (int i in set)
@@ -625,7 +684,7 @@ namespace SudokuSolver
 							{
 								//only match sets that are top level
 								if (iterCoords(iterType, s, e2).PossibilityCount == set.Count
-									&& iterCoords(iterType, s, e2).SetList.Contains(set, new gridSquare.SetOfIntEqualityComparer()))
+									&& iterCoords(iterType, s, e2).SetList.Contains(set))
 									matchCount++;
 							}
 
@@ -636,7 +695,7 @@ namespace SudokuSolver
 								for (int eE = 0; eE < 9; eE++)
 								{
 									if (iterCoords(iterType, s, eE).PossibilityCount == set.Count
-										&& iterCoords(iterType, s, eE).SetList.Contains(set, new gridSquare.SetOfIntEqualityComparer()))
+										&& iterCoords(iterType, s, eE).SetList.Contains(set))
 										continue;
 									foreach (int i in set)
 										madeChanges |= iterCoords(iterType, s, eE).eliminate(i);
@@ -753,7 +812,7 @@ namespace SudokuSolver
 			for (int val = 1; val <= 9; val++)
 			{
 				//scan for a column that contains exactly 2 squares where val is possible
-				for (int x1  = 0; x1 < 8; x1++)
+				for (int x1 = 0; x1 < 8; x1++)
 				{
 					int col1 = -1;
 					int col2 = -1;
