@@ -41,6 +41,7 @@ namespace SudokuSolver
 
 		private SudokuGrid currentGrid; //private SudokuGrid.gridSquare[,] mainGrid;
 		private Stack<SudokuGrid> snapshotStack; //private Stack<SudokuGrid.gridSquare[,]> snapshotStack;
+		private Stack<SudokuGrid> undoStack;
 
 		private TextBoxXY[,] textBoxXY;
 
@@ -51,6 +52,7 @@ namespace SudokuSolver
 			
 			currentGrid = new SudokuGrid();
 			snapshotStack = new Stack<SudokuGrid>();
+			undoStack = new Stack<SudokuGrid>();
 			refreshDisplay();
 
 			numericUpDown1.Maximum = testCases.Length - 1;
@@ -153,6 +155,8 @@ namespace SudokuSolver
 				return;
 			}
 
+			SudokuGrid undoTemp = new SudokuGrid(currentGrid);
+
 			//attempt to apply the new digit
 			if (!currentGrid.setKnownValue(curr.X, curr.Y, (int)Char.GetNumericValue(digit)))
 			{
@@ -160,13 +164,15 @@ namespace SudokuSolver
 				return;
 			}
 
+			undoStack.Push(undoTemp);
+			buttonUndo.Enabled = true;
+
 			labelDebugInfo.Text = listPossibilities(curr.X, curr.Y); //force update possibilty list for this cell, since this cell has focus
 			//change accepted, check entire grid, if autosolve is on
 			if (checkBoxAuto.Checked)
 				currentGrid.solve();
 				
 			refreshDisplay();
-			
 		}
 
 		//Resetting everything is fast enough that it is not worth the maintanance risk to update the display piecemeal
@@ -284,12 +290,6 @@ namespace SudokuSolver
 			buttonRestore.Enabled = true;
 			buttonPopSnapshot.Enabled = true;
 			buttonPopSnapshot.Text = "Pop Snapshot (" + snapshotStack.Count + ")";
-		}
-
-		private void buttonRestore_Click(object sender, EventArgs e)
-		{
-			currentGrid = new SudokuGrid(snapshotStack.Peek());
-			refreshDisplay();
 		}
 
 		private void buttonPopSnapshot_Click(object sender, EventArgs e)
@@ -563,6 +563,17 @@ namespace SudokuSolver
 			}
 
 			runTestCase(new testCase{X = xArray, Y= yArray, n=nArray});
+		}
+
+		private void buttonUndo_Click(object sender, EventArgs e)
+		{
+			currentGrid = undoStack.Pop();
+			refreshDisplay();
+
+			if (undoStack.Count < 1)
+			{
+				buttonUndo.Enabled = false;
+			}
 		}
 
 
