@@ -178,6 +178,14 @@ namespace SudokuSolver
 		//Resetting everything is fast enough that it is not worth the maintanance risk to update the display piecemeal
 		private void refreshDisplay()
 		{
+			//red is good for seeing how it works, but looks like an error to the user
+			//only show it with debug tools
+			System.Drawing.Color placeEliminationColor;
+			if (checkBoxDebugTools.Checked)
+				placeEliminationColor = System.Drawing.Color.Red;
+			else
+				placeEliminationColor = System.Drawing.Color.Blue;
+
 			for (int i = 0; i < 9; i++)
 				for (int j = 0; j < 9; j++)
 				{
@@ -202,7 +210,7 @@ namespace SudokuSolver
 							textBoxXY[i, j].ForeColor = System.Drawing.Color.Black;
 							break;
 						case SudokuGrid.SolveType.PlaceElimination:
-							textBoxXY[i, j].ForeColor = System.Drawing.Color.Red;//TODO: red means error, pick new color
+							textBoxXY[i, j].ForeColor = placeEliminationColor;
 							break;
 						case SudokuGrid.SolveType.PossibilityElimination:
 							textBoxXY[i, j].ForeColor = System.Drawing.Color.Blue;
@@ -348,6 +356,9 @@ namespace SudokuSolver
 		{
 			panelDebugTools.Visible = checkBoxDebugTools.Checked;
 			ResetSize();
+
+			//needed to switch from multicolor to all blue display numbers
+			refreshDisplay();
 		}
 
 		struct testCase
