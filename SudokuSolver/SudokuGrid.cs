@@ -298,6 +298,15 @@ namespace SudokuSolver
 					solveGrid[i, j] = new gridSquare(i, j);
 				}
 			}
+			//start with all values unsolved
+			HashSet<int> temp = new HashSet<int> { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+			unsolvedValues = new HashSet<int>[3, 9]; //3 types of section, nine of each type
+			for (int i = 0; i < 9; i++)
+			{
+				unsolvedValues[(int)iterateBy.Box, i] = new HashSet<int>(temp);
+				unsolvedValues[(int)iterateBy.Row, i] = new HashSet<int>(temp);
+				unsolvedValues[(int)iterateBy.Col, i] = new HashSet<int>(temp);
+			}
 		}
 
 		public SudokuGrid(SudokuGrid toCopy)
@@ -311,9 +320,18 @@ namespace SudokuSolver
 					solveGrid[i, j] = new gridSquare(toCopy.solveGrid[i, j]);
 				}
 			}
+
+			unsolvedValues = new HashSet<int>[3, 9]; //3 types of section, nine of each type
+			for (int i = 0; i < 9; i++)
+			{
+				unsolvedValues[(int)iterateBy.Box, i] = new HashSet<int>(toCopy.unsolvedValues[0, i]);
+				unsolvedValues[(int)iterateBy.Row, i] = new HashSet<int>(toCopy.unsolvedValues[1, i]);
+				unsolvedValues[(int)iterateBy.Col, i] = new HashSet<int>(toCopy.unsolvedValues[2, i]);
+			}
 		}
 
 		private gridSquare[,] solveGrid;
+		private HashSet<int>[,] unsolvedValues; //track what values each section has remaining to solve
 
 		/// <summary>
 		/// access sqaures by which box they are in and which square in the box
@@ -363,9 +381,9 @@ namespace SudokuSolver
 
 		private enum iterateBy
 		{
-			Box,
-			Row,
-			Col
+			Box = 0,
+			Row = 1,
+			Col = 2
 		}
 
 		/// <summary>
@@ -420,6 +438,11 @@ namespace SudokuSolver
 				solveGrid[x, y].solveType = SolveType.Entered;
 				solveGrid[x, y].KnownValue = value;
 				eliminate(x, y);
+				//Remove value from solved lists for this square's sections
+				unsolvedValues[(int)iterateBy.Box, y - y % 3 + x / 3].Remove(value);
+				unsolvedValues[(int)iterateBy.Row, y].Remove(value);
+				unsolvedValues[(int)iterateBy.Col, x].Remove(value);
+
 				return true;
 			}
 
@@ -656,10 +679,9 @@ namespace SudokuSolver
 
 		private bool matchedSetEliminationScan()
 		{
-			//TODO: figure out how to make this work for triples that are locked, but not exact set matches...
 			bool madeChanges = false;
 
-			//scan for sets in box, in col, in row TODO: add optimizations
+			//scan for sets in box, in col, in row
 
 			//check by each section type
 			foreach (iterateBy iterType in Enum.GetValues(typeof(iterateBy)))
@@ -667,45 +689,50 @@ namespace SudokuSolver
 				//for each section:
 				for (int s = 0; s < 9; s++)
 				{
-					//for each element in section
-					for (int e = 0; e < 9; e++)
+					if (unsolvedValues[(int)iterType, s].Count == 0)
 					{
-						HashSet<HashSet<int>> setList = iterCoords(iterType, s, e).SetList;
-
-						foreach (HashSet<int> set in setList)
+						continue; //section already completly solved
+					}
+					PossibilitySet sectionPossibilities = new PossibilitySet(unsolvedValues[(int)iterType, s], 8);
+					foreach (HashSet<int> set in sectionPossibilities)
+					{
+						HashSet<int> matchIndices = new HashSet<int>();
+						//for each element in section
+						for (int e = 0; e < 9; e++)
 						{
-							//skip any set that isn't top level
-							if (set.Count != iterCoords(iterType, s, e).PossibilityCount)
-								continue;
-							//find a match for this set
-							int matchCount = 0;
-							//scan rest of box for match, moving through sqaures later in box scan order
-							for (int e2 = 0; e2 < 9; e2++)
+							bool match = true;
+							for (int i = 1; i <= 9; i++)
 							{
-								//only match sets that are top level
-								if (iterCoords(iterType, s, e2).PossibilityCount == set.Count
-									&& iterCoords(iterType, s, e2).SetList.Contains(set))
-									matchCount++;
-							}
-
-							if (matchCount == set.Count)
-							{
-								//values in set can ONLY be in squares that contain entire set
-								//so eliminate set values all other places in box
-								for (int eE = 0; eE < 9; eE++)
+								if (!set.Contains(i) && iterCoords(iterType, s, e).isPossible(i))
 								{
-									if (iterCoords(iterType, s, eE).PossibilityCount == set.Count
-										&& iterCoords(iterType, s, eE).SetList.Contains(set))
-										continue;
-									foreach (int i in set)
-										madeChanges |= iterCoords(iterType, s, eE).eliminate(i);
+									match = false;
+									break;
 								}
 							}
+							if (match)
+							{
+								matchIndices.Add(e);
+							}
+						}
+						if (matchIndices.Count == set.Count)
+						{
+							bool tempMadeChanges = false;
+							//values in set can ONLY be in squares that contain only values in set
+							//so eliminate set values all other places in section
+							for (int eE = 0; eE < 9; eE++)
+							{
+								if (matchIndices.Contains(eE))
+									continue;
+
+								foreach (int i in set)
+									tempMadeChanges |= iterCoords(iterType, s, eE).eliminate(i);
+							}
+							if (tempMadeChanges)
+								madeChanges = true;
 						}
 					}
 				}
 			}
-
 			return madeChanges;
 		}
 
