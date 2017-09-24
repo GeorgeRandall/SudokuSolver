@@ -40,12 +40,13 @@
 			this.buttonPopSnapshot = new System.Windows.Forms.Button();
 			this.checkBoxClutter = new System.Windows.Forms.CheckBox();
 			this.panelDebugTools = new System.Windows.Forms.Panel();
+			this.buttonPasteTest = new System.Windows.Forms.Button();
 			this.buttonExtract = new System.Windows.Forms.Button();
 			this.numericUpDown1 = new System.Windows.Forms.NumericUpDown();
 			this.buttonTestCase = new System.Windows.Forms.Button();
 			this.labelDebugInfo = new System.Windows.Forms.Label();
 			this.checkBoxDebugTools = new System.Windows.Forms.CheckBox();
-			this.buttonPasteTest = new System.Windows.Forms.Button();
+			this.buttonUndo = new System.Windows.Forms.Button();
 			this.panelDebugTools.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
 			this.SuspendLayout();
@@ -54,7 +55,7 @@
 			// 
 			this.buttonReset.Location = new System.Drawing.Point(12, 12);
 			this.buttonReset.Name = "buttonReset";
-			this.buttonReset.Size = new System.Drawing.Size(78, 23);
+			this.buttonReset.Size = new System.Drawing.Size(75, 23);
 			this.buttonReset.TabIndex = 1;
 			this.buttonReset.Text = "Reset";
 			this.buttonReset.UseVisualStyleBackColor = true;
@@ -79,14 +80,13 @@
 			this.buttonRestore.TabIndex = 3;
 			this.buttonRestore.Text = "Peek Snapshot";
 			this.buttonRestore.UseVisualStyleBackColor = true;
-			this.buttonRestore.Click += new System.EventHandler(this.buttonRestore_Click);
 			// 
 			// checkBoxAuto
 			// 
 			this.checkBoxAuto.AutoSize = true;
 			this.checkBoxAuto.Checked = true;
 			this.checkBoxAuto.CheckState = System.Windows.Forms.CheckState.Checked;
-			this.checkBoxAuto.Location = new System.Drawing.Point(96, 16);
+			this.checkBoxAuto.Location = new System.Drawing.Point(174, 16);
 			this.checkBoxAuto.Name = "checkBoxAuto";
 			this.checkBoxAuto.Size = new System.Drawing.Size(78, 17);
 			this.checkBoxAuto.TabIndex = 4;
@@ -109,9 +109,9 @@
 			this.labelVersionInfo.BackColor = System.Drawing.SystemColors.Control;
 			this.labelVersionInfo.Location = new System.Drawing.Point(9, 386);
 			this.labelVersionInfo.Name = "labelVersionInfo";
-			this.labelVersionInfo.Size = new System.Drawing.Size(185, 13);
+			this.labelVersionInfo.Size = new System.Drawing.Size(194, 13);
 			this.labelVersionInfo.TabIndex = 7;
-			this.labelVersionInfo.Text = "v2.4                      by: George Randall";
+			this.labelVersionInfo.Text = "v3.6-pre                   by: George Randall";
 			// 
 			// textBoxDummy
 			// 
@@ -147,7 +147,7 @@
 			// checkBoxClutter
 			// 
 			this.checkBoxClutter.AutoSize = true;
-			this.checkBoxClutter.Location = new System.Drawing.Point(180, 16);
+			this.checkBoxClutter.Location = new System.Drawing.Point(258, 16);
 			this.checkBoxClutter.Name = "checkBoxClutter";
 			this.checkBoxClutter.Size = new System.Drawing.Size(77, 17);
 			this.checkBoxClutter.TabIndex = 11;
@@ -171,6 +171,16 @@
 			this.panelDebugTools.Size = new System.Drawing.Size(314, 89);
 			this.panelDebugTools.TabIndex = 12;
 			this.panelDebugTools.Visible = false;
+			// 
+			// buttonPasteTest
+			// 
+			this.buttonPasteTest.Location = new System.Drawing.Point(204, 61);
+			this.buttonPasteTest.Name = "buttonPasteTest";
+			this.buttonPasteTest.Size = new System.Drawing.Size(75, 23);
+			this.buttonPasteTest.TabIndex = 16;
+			this.buttonPasteTest.Text = "Paste Test";
+			this.buttonPasteTest.UseVisualStyleBackColor = true;
+			this.buttonPasteTest.Click += new System.EventHandler(this.buttonPasteTest_Click);
 			// 
 			// buttonExtract
 			// 
@@ -210,8 +220,9 @@
 			// 
 			// checkBoxDebugTools
 			// 
+			this.checkBoxDebugTools.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
 			this.checkBoxDebugTools.AutoSize = true;
-			this.checkBoxDebugTools.Location = new System.Drawing.Point(263, 16);
+			this.checkBoxDebugTools.Location = new System.Drawing.Point(209, 385);
 			this.checkBoxDebugTools.Name = "checkBoxDebugTools";
 			this.checkBoxDebugTools.Size = new System.Drawing.Size(87, 17);
 			this.checkBoxDebugTools.TabIndex = 13;
@@ -219,20 +230,22 @@
 			this.checkBoxDebugTools.UseVisualStyleBackColor = true;
 			this.checkBoxDebugTools.CheckedChanged += new System.EventHandler(this.checkBoxDebugTools_CheckedChanged);
 			// 
-			// buttonPasteTest
+			// buttonUndo
 			// 
-			this.buttonPasteTest.Location = new System.Drawing.Point(204, 61);
-			this.buttonPasteTest.Name = "buttonPasteTest";
-			this.buttonPasteTest.Size = new System.Drawing.Size(75, 23);
-			this.buttonPasteTest.TabIndex = 16;
-			this.buttonPasteTest.Text = "Paste Test";
-			this.buttonPasteTest.UseVisualStyleBackColor = true;
-			this.buttonPasteTest.Click += new System.EventHandler(this.buttonPasteTest_Click);
+			this.buttonUndo.Enabled = false;
+			this.buttonUndo.Location = new System.Drawing.Point(93, 12);
+			this.buttonUndo.Name = "buttonUndo";
+			this.buttonUndo.Size = new System.Drawing.Size(75, 23);
+			this.buttonUndo.TabIndex = 14;
+			this.buttonUndo.Text = "Undo";
+			this.buttonUndo.UseVisualStyleBackColor = true;
+			this.buttonUndo.Click += new System.EventHandler(this.buttonUndo_Click);
 			// 
 			// Form1
 			// 
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
 			this.ClientSize = new System.Drawing.Size(352, 408);
+			this.Controls.Add(this.buttonUndo);
 			this.Controls.Add(this.checkBoxDebugTools);
 			this.Controls.Add(this.panelDebugTools);
 			this.Controls.Add(this.textBoxDummy);
@@ -274,6 +287,7 @@
 		private System.Windows.Forms.NumericUpDown numericUpDown1;
 		private System.Windows.Forms.Button buttonExtract;
 		private System.Windows.Forms.Button buttonPasteTest;
+		private System.Windows.Forms.Button buttonUndo;
         
     }
 }
