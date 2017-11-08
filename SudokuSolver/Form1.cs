@@ -440,15 +440,31 @@ namespace SudokuSolver
 
 		private void buttonTestCase_Click(object sender, EventArgs e)
 		{
-			runTestCase(testCases[(int)numericUpDown1.Value]);
+			int test = (int)numericUpDown1.Value;
+
+			if (test >= 0)
+			{
+				runTestCase(testCases[test], 1);
+				return;
+			}
+
+			TimeSpan sum = TimeSpan.Zero;
+			for (int i = 0; i < testCases.Length; i++)
+			{
+				sum += runTestCase(testCases[i], 100);
+			}
+
+			currentGrid = new SudokuGrid();
+			refreshDisplay();
+
+			labelDebugInfo.Text = "Elapsed:" + sum.ToString();
 		}
 
-		private void runTestCase(testCase test)
+		private TimeSpan runTestCase(testCase test, int count)
 		{
 			TimeSpan sum = TimeSpan.Zero;
 
-			//TODO: add option for this to debug gui
-			//for (int i = 0; i < 100; i++) //uncomment to run test 100 times for better time comparisons
+			for (int i = 0; i < count; i++)
 			{
 				currentGrid = new SudokuGrid();
 
@@ -467,12 +483,11 @@ namespace SudokuSolver
 					timer.Stop();
 				}
 
-
-				refreshDisplay();
-
 				sum += timer.Elapsed;
 			}
+			refreshDisplay();
 			labelDebugInfo.Text = "Elapsed:" + sum.ToString();
+			return sum;
 		}
 
 
@@ -573,7 +588,7 @@ namespace SudokuSolver
 				return;
 			}
 
-			runTestCase(new testCase{X = xArray, Y= yArray, n=nArray});
+			runTestCase(new testCase{X = xArray, Y= yArray, n=nArray}, 1);
 		}
 
 		private void buttonUndo_Click(object sender, EventArgs e)
