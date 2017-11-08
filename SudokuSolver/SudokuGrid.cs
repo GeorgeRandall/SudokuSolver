@@ -483,8 +483,7 @@ namespace SudokuSolver
 		/// </summary>
 		public void dubug_resetOptimizations()
 		{
-			//TODO:reset any optimizations for testing
-			throw new NotImplementedException();
+			//TODO:reset any cached optimizations for testing purposes.
 		}
 
 		/// <summary>
