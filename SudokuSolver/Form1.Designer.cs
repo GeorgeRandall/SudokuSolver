@@ -111,7 +111,7 @@
 			this.labelVersionInfo.Name = "labelVersionInfo";
 			this.labelVersionInfo.Size = new System.Drawing.Size(194, 13);
 			this.labelVersionInfo.TabIndex = 7;
-			this.labelVersionInfo.Text = "v3.6-pre                   by: George Randall";
+			this.labelVersionInfo.Text = "v3.7-pre                   by: George Randall";
 			// 
 			// textBoxDummy
 			// 
