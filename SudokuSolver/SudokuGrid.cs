@@ -126,13 +126,13 @@ namespace SudokuSolver
 			//possibilities[n] represents if it is possible for the square at x,y to be the number n(1-9)
 			private bool[] possibilities;
 
-			//number of possibilites remaining
-			int possCount;
-
 			//set whenever possibilities at x,y are changed, cleared whenever x,y is checked. TODO: use for future optimizations? (or remove)
 			bool recheck;
 
-			//set of possible combinations
+			//set of all individual possibilities
+			List<int> possList;
+
+			//set of all possible combinations
 			PossibilitySet setList;
 
 			public SudokuGrid.SolveType solveType { get; set; }
@@ -144,10 +144,11 @@ namespace SudokuSolver
 
 				knownValue = 0;
 
+				//Storing information about possibilities in different ways to speed up different kinds of access.
 				possibilities = new bool[9 + 1];//possibilities[0] is not used, possibilities[1->9] is possible values (true/false)
 				for (int i = 1; i <= 9; ++i)
 					possibilities[i] = true;
-				possCount = 9;
+				possList = new List<int>{1,2,3,4,5,6,7,8,9};
 
 				initSetList();
 
@@ -175,7 +176,7 @@ namespace SudokuSolver
 				this.knownValue = toCopy.knownValue;
 				for (int i = 1; i <= 9; ++i)
 					this.possibilities[i] = toCopy.possibilities[i];
-				this.possCount = toCopy.possCount;
+				this.possList = new List<int>(toCopy.possList);
 
 				this.recheck = toCopy.recheck;
 				this.solveType = toCopy.solveType;
@@ -188,7 +189,7 @@ namespace SudokuSolver
 
 				for (int i = 1; i <= 9; ++i)
 					possibilities[i] = true;
-				possCount = 9;
+				possList = new List<int> { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
 				initSetList();
 
@@ -245,10 +246,10 @@ namespace SudokuSolver
 				{
 					if (possibilities[i]) //it was listed as possible before
 					{
-						--possCount;
+						possList.Remove(i);
 						recheck = true;
 						possibilities[i] = false;
-						if (possCount == 0)
+						if (PossibilityCount == 0)
 							solveType = SolveType.Invalid;
 						else
 							setList.removeAllContaining(i);
@@ -261,7 +262,7 @@ namespace SudokuSolver
 
 			public int PossibilityCount
 			{
-				get { return possCount; }
+				get { return possList.Count; }
 			}
 
 			public string PossibilityString
@@ -269,20 +270,36 @@ namespace SudokuSolver
 				get
 				{
 					string ret = "";
-					for (int i = 1; i < 10; i++)
-						if (isPossible(i))
-							ret += " " + i;
+					for (int i = 0; i < possList.Count; i++)
+						ret += " " + possList[i];
 					return ret;
 
 				}
 			}
 
-			public PossibilitySet SetList
+			internal PossibilitySet SetList
 			{
 				get
 				{
 					return setList; //TODO? refactor to not provide full access to member? This helper class is private to SudokuGrid class...
 				}
+			}
+
+			internal List<int> PossibilityList
+			{
+				get
+				{
+					return possList; //TODO? refactor to not provide full access to member? This helper class is private to SudokuGrid class...
+				}
+			}
+
+			public bool isBuddy(gridSquare g)
+			{
+				if (X == g.X || Y == g.Y)
+					return true;
+				if (Y / 3 == g.Y / 3 && X / 3 == g.X / 3)
+					return true;
+				return false;
 			}
 		}
 
@@ -540,17 +557,9 @@ namespace SudokuSolver
 						//check if possibility elimination applies
 						if (solveGrid[i, j].KnownValue == 0 && solveGrid[i, j].PossibilityCount == 1)
 						{
-							//find and save the remaining possibility
-							for (int n = 1; n <= 9; n++)
-							{
-								if (solveGrid[i, j].isPossible(n))
-								{
-									//solveGrid[i, j].KnownValue = n;
-									setKnownValue(i, j, n);
-									solveGrid[i, j].solveType = SolveType.PossibilityElimination;
-									break;
-								}
-							}
+							//save the remaining possibility
+							setKnownValue(i, j, solveGrid[i,j].PossibilityList[0]);
+							solveGrid[i, j].solveType = SolveType.PossibilityElimination;
 							madeIterationChanges = true;
 						}
 
