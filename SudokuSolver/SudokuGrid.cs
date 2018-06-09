@@ -148,7 +148,7 @@ namespace SudokuSolver
 				possibilities = new bool[9 + 1];//possibilities[0] is not used, possibilities[1->9] is possible values (true/false)
 				for (int i = 1; i <= 9; ++i)
 					possibilities[i] = true;
-				possList = new List<int>{1,2,3,4,5,6,7,8,9};
+				possList = new List<int> { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
 				initSetList();
 
@@ -530,8 +530,11 @@ namespace SudokuSolver
 				//line/box elimination
 				madeIterationChanges |= lineBoxEliminationScan();
 
-				//xwing elimination
+				//X wing elimination
 				madeIterationChanges |= xwingEliminationScan();
+
+				//Y wing elimination
+				madeIterationChanges |= ywingEliminationScan();
 
 				//set return value
 				if (madeIterationChanges)
@@ -558,7 +561,7 @@ namespace SudokuSolver
 						if (solveGrid[i, j].KnownValue == 0 && solveGrid[i, j].PossibilityCount == 1)
 						{
 							//save the remaining possibility
-							setKnownValue(i, j, solveGrid[i,j].PossibilityList[0]);
+							setKnownValue(i, j, solveGrid[i, j].PossibilityList[0]);
 							solveGrid[i, j].solveType = SolveType.PossibilityElimination;
 							madeIterationChanges = true;
 						}
@@ -986,6 +989,76 @@ namespace SudokuSolver
 
 
 			}
+
+			return madeChanges;
+		}
+
+		private bool ywingEliminationScan()
+		{
+			bool madeChanges = false;
+			//don't loop inside this one. it's more expensive than eliminationScan and will be looped back to again if anything changes //TODO check if should loop
+
+			//fill out a list with all gridsquares that contain only a pair of possibitlies (this will be faster than scanning entire grid for each pair combo.)
+			List<gridSquare> pairs = new List<gridSquare>();
+			for (int i = 0; i < 9; i++)
+			{
+				for (int j = 0; j < 9; j++)
+				{
+					if (solveGrid[i, j].PossibilityCount == 2)
+						pairs.Add(solveGrid[i, j]);
+				}
+			}
+
+			//scan through for any ABC alignment of pairs
+			for (int i = 0; i < pairs.Count; i++)
+			{
+				gridSquare AB = pairs[i];
+				gridSquare AC = null;
+				gridSquare BC = null;
+				int A = AB.PossibilityList[0];
+				int B = AB.PossibilityList[1];
+				int C = 0;
+				//test for ABC triple of pairs (AB, AC, BC)
+				//find a matching XZ
+				for (int j = 0; j < pairs.Count; j++)
+				{
+					if (pairs[j].isPossible(B)) //don't allow to match same pair
+						continue;
+					if (!pairs[j].isBuddy(AB))
+						continue;
+					if (pairs[j].isPossible(A))
+					{
+						AC = pairs[j];
+						//extract C value
+						if (AC.PossibilityList[0] != A)
+							C = AC.PossibilityList[0];
+						else
+							C = AC.PossibilityList[1];
+
+						//find a matching BC
+						for (int k = 0; k < pairs.Count; k++)
+						{
+							if (k == i)
+								continue;
+							if (!pairs[k].isBuddy(AB))
+								continue;
+							if (pairs[k].isPossible(B) && pairs[k].isPossible(C))
+							{
+								BC = pairs[k];
+								//eliminate other possibilites
+								foreach (gridSquare g in solveGrid)
+								{
+									if (g.isBuddy(BC) && g.isBuddy(AC) && g != BC && g != AC)
+										madeChanges |= g.eliminate(C);
+								}
+								if (madeChanges)
+									return true;
+							}
+						}
+					}
+				}
+			}
+
 
 			return madeChanges;
 		}
