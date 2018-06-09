@@ -378,50 +378,50 @@ namespace SudokuSolver
 				Y = new int[] { 1, 1, 1, 1, 1, 1, 1, 1, 6, 7, 7, 8},
 				n = new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 1, 9, 7, 1}
 			},
-			//1. simple test case of a super pair elimination
+			//1. simple test case for matchedSetEliminationScan
 			new testCase
 			{
-
 				X = new int[] { 0, 0, 0, 2, 2, 3, 4, 6, 7, },
 				Y = new int[] { 0, 1, 2, 0, 1, 0, 0, 1, 1, },
 				n = new int[] { 1, 2, 3, 4, 5, 6, 7, 6, 7, },
 			},
-			//2. full puzzle I'm still trying to solve. was used to discover pair set technique. Solved after adding xwing
+			//2. Solved after adding xwing. Used to discover pair set technique.
 			new testCase
 			{
 				X = new int[] { 4, 8, 0, 3, 5, 7, 0, 2, 5, 6, 1, 5, 0, 4, 8, 3, 7, 2, 3, 6, 8, 1, 3, 5, 8, 0, 4},
 				Y = new int[] { 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4, 4, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 8, 8},
 				n = new int[] { 8, 1, 6, 2, 1, 9, 2, 9, 3, 8, 4, 9, 3, 4, 8, 6, 7, 8, 5, 6, 3, 3, 1, 8, 5, 4, 6}
 			},
-			//3. is able to compute that (2,1) = 2 because of 4's using "X-wing technique". otherwise still unsolved.
+			//3. Unsolved. is able to compute that (2,1) = 2 because of 4's using "X-wing technique".
+			// !!! Unsolvable, multiple solutions !!!
 			new testCase
 			{
 				X = new int[] { 0, 0, 0, 1, 2, 2, 2, 2, 3, 4, 4, 5, 5, 6, 7, 8, 8, 8, },
 				Y = new int[] { 2, 5, 6, 5, 0, 4, 5, 7, 7, 1, 3, 0, 8, 4, 1, 2, 5, 6, },
 				n = new int[] { 3, 5, 2, 4, 5, 8, 1, 7, 4, 6, 4, 4, 3, 4, 9, 7, 9, 3, },
 			},
-			//4. full puzzle I'm still trying to solve. has not yet yealded any new techniques
+			//4. Unsolved. Could be solved with Simple Coloring
 			new testCase
 			{
 				X = new int[] { 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 4, 4, 4, 5, 5, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, },
 				Y = new int[] { 2, 4, 6, 0, 2, 4, 5, 0, 2, 3, 5, 8, 0, 1, 7, 8, 0, 3, 5, 6, 8, 3, 4, 6, 8, 2, 4, 6, },
 				n = new int[] { 3, 7, 2, 5, 7, 3, 9, 9, 4, 6, 4, 6, 6, 4, 8, 3, 1, 5, 2, 6, 9, 1, 5, 8, 4, 8, 4, 3, },
 			},
-			//5. new full puzzle. unsolved.
+			//5. Solved by Hidden Set revealing.
 			new testCase
 			{
 				X = new int[] { 0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 4, 4, 4, 4, 5, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 8, },
 				Y = new int[] { 0, 2, 3, 8, 2, 3, 5, 0, 5, 8, 2, 3, 1, 3, 5, 7, 5, 6, 0, 3, 8, 3, 5, 6, 0, 5, 6, 8, },
 				n = new int[] { 7, 4, 8, 2, 2, 4, 9, 6, 7, 4, 1, 7, 8, 6, 2, 5, 1, 7, 9, 2, 6, 3, 8, 5, 5, 6, 8, 7, },
 			},
-			//6. new full puzzle. unsolved.
+			//6. Unsolved.
 			new testCase
 			{
 				X = new int[] { 0, 0, 0, 0, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4, 4, 5, 5, 5, 6, 6, 6, 7, 8, 8, 8, 8, },
 				Y = new int[] { 2, 4, 5, 8, 7, 2, 3, 8, 1, 3, 4, 0, 2, 4, 6, 8, 4, 5, 7, 0, 5, 6, 1, 0, 3, 4, 6, },
 				n = new int[] { 1, 5, 7, 6, 5, 4, 9, 8, 4, 5, 9, 3, 9, 1, 2, 4, 3, 4, 7, 4, 9, 1, 7, 8, 6, 4, 5, },
 			},
-			//7. new full puzzle. Solved after adding xwing
+			//7. Solved after adding xwing
 			new testCase
 			{
 				X = new int[] { 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5, 5, 6, 6, 7, 7, 8, 8, 8, 8, },
@@ -429,7 +429,7 @@ namespace SudokuSolver
 				n = new int[] { 6, 2, 3, 4, 4, 3, 9, 8, 2, 6, 5, 1, 8, 4, 6, 1, 3, 9, 8, 8, 6, 9, 7, 1, 8, 3, 5, },
 			},
 
-			//8. new full puzzle. helped by set matching.  Solved after adding xwing
+			//8. Solved after adding xwing. Needs set matching.  
 			new testCase
 			{
 				X = new int[] { 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 3, 4, 4, 5, 5, 5, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, },
