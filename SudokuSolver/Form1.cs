@@ -187,10 +187,11 @@ namespace SudokuSolver
 				placeEliminationColor = System.Drawing.Color.Blue;
 
 			for (int i = 0; i < 9; i++)
+			{
 				for (int j = 0; j < 9; j++)
 				{
 					//reset correct background color
-					if (currentGrid.solveType(i,j) == SudokuGrid.SolveType.Invalid)
+					if (currentGrid.solveType(i, j) == SudokuGrid.SolveType.Invalid)
 						textBoxXY[i, j].BackColor = System.Drawing.Color.Red;
 					else
 						textBoxXY[i, j].BackColor = System.Drawing.Color.White;
@@ -217,6 +218,7 @@ namespace SudokuSolver
 							break;
 					}
 				}
+			}
 		}
 
 		//display possibility info in labelMessage whenever textbox is entered
@@ -328,7 +330,10 @@ namespace SudokuSolver
 			//force a recheck of the solution
 			//NOTE: THIS FUNCTION SHOULD HAVE NO EFFECT when solve() is working correctly!
 			currentGrid.dubug_resetOptimizations();
-			currentGrid.solve(); 
+			if (checkBoxAuto.Checked)
+			{
+				currentGrid.solve();
+			}
 			refreshDisplay();
 		}
 
