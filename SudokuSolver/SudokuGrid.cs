@@ -5,32 +5,37 @@ using System.Text;
 
 namespace SudokuSolver
 {
+	/// <summary>
+	/// Class to contain and solve a sudoku puzzle.
+	/// </summary>
 	public class SudokuGrid
 	{
 		public enum SolveType
 		{
 			Unsolved,
 			Entered,
-			PlaceElimination, //red
+			PlaceElimination, //blue (or red in debug mode)
 			PossibilityElimination, //blue
 			Invalid //red background
 		}
 
 		/// <summary>
-		/// Create and maintain a HashSet of possible combinations.
+		/// Create and maintain a HashSet of HashSets representing possible combinations.
 		/// </summary>
 		private class PossibilitySet : HashSet<HashSet<int>>
 		{
 			/// <summary>
-			/// Basic constructor. Find sets for all unordered
-			/// combinations of Elements up to maxLen in length.
+			/// Basic constructor. Populates this with sets for all unordered
+			/// permutations of Elements up to maxLen in length.
 			/// </summary>
 			/// <param name="elements">Elements to combine into sets</param>
 			/// <param name="maxLen">Max length of sets. </param>
 			public PossibilitySet(HashSet<int> elements, int maxLen)
 			{
 				fillsets(elements, maxLen);
-				//remove the singletons that where added for filling
+				//remove the singletons that where added by fillsets().
+				//Adding them is essential to filling out the sets, but they serve no further purpose.
+				//See note in singlePlacementScan()
 				this.RemoveWhere(s => s.Count == 1);
 			}
 
@@ -43,14 +48,23 @@ namespace SudokuSolver
 				}
 			}
 
+			//populate this with a set for every permutation of elements that contains maxLen or less elements.
+			// Works recursively to combine elements[0] with all existing permuations already stored in this,
+			// removing elements[0], then calling itself with the reduced elements set.
 			private void fillsets(HashSet<int> elements, int maxLen)
 			{
+				//extract first element from elements
 				int i = elements.ElementAt(0);
 				elements.Remove(i);
-				HashSet<int> temp = new HashSet<int> { i };
+
+				//set up workspace (cannot alter <this> while iterating without breaking iterator)
 				HashSet<HashSet<int>> workingSet = new HashSet<HashSet<int>>();
 
+				//add singleton of first element
+				HashSet<int> temp = new HashSet<int> { i };
 				workingSet.Add(temp);
+
+				//add all permutations (that don't exceed maxLen) of first element with existing contents of set
 				foreach (HashSet<int> set in this)
 				{
 					if (set.Count < maxLen)
@@ -62,6 +76,7 @@ namespace SudokuSolver
 				}
 				this.UnionWith(workingSet);
 
+				//recursive call to fill set with all permutations including remaining elements
 				if (elements.Count != 0)
 				{
 					fillsets(elements, maxLen);
@@ -77,6 +92,7 @@ namespace SudokuSolver
 				RemoveWhere(s => s.Contains(i));
 			}
 
+			//simple comparer for use in Contains()
 			private class SetOfIntEqualityComparer : IEqualityComparer<HashSet<int>>
 			{
 				public bool Equals(HashSet<int> s1, HashSet<int> s2)
@@ -92,7 +108,7 @@ namespace SudokuSolver
 
 			/// <summary>
 			/// Determines whether a sequence contains a specified
-			/// element by using a special built in IEqualityComparer.
+			/// element by using the special built in IEqualityComparer.
 			/// </summary>
 			/// <param name="value">The value to locate</param>
 			/// <returns>true if the source sequence contains an element that has the specified value;
@@ -103,7 +119,7 @@ namespace SudokuSolver
 			}
 
 			/// <summary>
-			/// removes all sets containt the value
+			/// removes all sets containing the value
 			/// </summary>
 			/// <param name="value">the value to remove</param>
 			public void removeAllContaining(int value)
@@ -113,28 +129,26 @@ namespace SudokuSolver
 		}
 
 		//helper class
-		//@TODO: clean up
 		private class gridSquare
 		{
-			int x; //these might not be needed, but they can stay for now
+			//Used to allow isBuddy check and could have further use
+			int x;
 			int y;
 
 			//known value 1-9, 0 for undecided.
 			int knownValue;
-			//possibilities array.
+			//possibilities array:
 			//possibilities[0] is unused
 			//possibilities[n] represents if it is possible for the square at x,y to be the number n(1-9)
 			private bool[] possibilities;
 
-			//set whenever possibilities at x,y are changed, cleared whenever x,y is checked. TODO: use for future optimizations? (or remove)
-			bool recheck;
-
 			//set of all individual possibilities
 			List<int> possList;
 
-			//set of all possible combinations
+			//set of all possible combinations of remaining possibilities
 			PossibilitySet setList;
 
+			//keep track of the method by which this gridSquare was solved
 			public SudokuGrid.SolveType solveType { get; set; }
 
 			public gridSquare(int x, int y)
@@ -142,32 +156,40 @@ namespace SudokuSolver
 				this.x = x;
 				this.y = y;
 
-				knownValue = 0;
-
 				//Storing information about possibilities in different ways to speed up different kinds of access.
 				possibilities = new bool[9 + 1];//possibilities[0] is not used, possibilities[1->9] is possible values (true/false)
+				setToInitialState();
+			}
+
+			//initialize/return to freshly constructed state
+			public void setToInitialState()
+			{
+				knownValue = 0;
+
 				for (int i = 1; i <= 9; ++i)
 					possibilities[i] = true;
 				possList = new List<int> { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
-				initSetList();
+				setList = new PossibilitySet(new HashSet<int>(possList), maxSetLength);
 
-				recheck = false; //nothing needs checking to start with
 				solveType = SudokuGrid.SolveType.Unsolved;
 			}
 
-			private void initSetList()
-			{
-				//fill out setList
-				setList = new PossibilitySet(new HashSet<int> { 1, 2, 3, 4, 5, 6, 7, 8, 9 }, 4);
-			}
+			//May want to change this to a class parameter at some future date,
+			// but for now it is hardcoded. This limits the size of set that can be
+			// detected in SudokuGrid.matchedSetEliminationScan(). Size 4 are rare
+			// but can occur. Larger values are meaningless, because a set of size 5
+			// or higher would always have a reciprical set of size 4 or lower.
+			private const int maxSetLength = 4;
 
+			//copy constructor. does a deep copy.
 			public gridSquare(gridSquare toCopy)
 			{
 				possibilities = new bool[9 + 1];
 				this.copy(toCopy);
 			}
 
+			//Make this instance a deep copy of toCopy
 			private void copy(gridSquare toCopy)
 			{
 				this.x = toCopy.x;
@@ -178,23 +200,8 @@ namespace SudokuSolver
 					this.possibilities[i] = toCopy.possibilities[i];
 				this.possList = new List<int>(toCopy.possList);
 
-				this.recheck = toCopy.recheck;
 				this.solveType = toCopy.solveType;
 				this.setList = new PossibilitySet(toCopy.setList);
-			}
-
-			public void reset()
-			{
-				knownValue = 0;
-
-				for (int i = 1; i <= 9; ++i)
-					possibilities[i] = true;
-				possList = new List<int> { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-
-				initSetList();
-
-				recheck = false; //nothing needs checking to start with
-				solveType = SudokuGrid.SolveType.Unsolved;
 			}
 
 			public int X
@@ -207,17 +214,26 @@ namespace SudokuSolver
 				get { return y; }
 			}
 
+			//the value that this GridSquare is known to contain
+			// or 0 if no value is known for certain
 			public int KnownValue
 			{
 				get { return knownValue; }
 				set
 				{
 					if (!isPossible(value))
-						throw new Exception("nope");
+						throw new Exception("invalid KnownValue");
+					if (value < 1 || value > 9)
+						throw new Exception("known value out of range error");
 					if (knownValue == value)
-						throw new Exception("wasting time"); //TODO: replace with simple return
+					{
+#if _debug
+						throw new Exception("wasting time");
+#else
+						return;
+#endif
+					}
 					knownValue = value;
-					recheck = true;
 
 					//eliminate all other possibilities
 					for (int i = 1; i < 10; i++)
@@ -225,21 +241,13 @@ namespace SudokuSolver
 				}
 			}
 
-			public bool Recheck
-			{
-				get { return recheck; }
-			}
-
-			public void setRecheck()
-			{ recheck = true; }
-
-			public void clearRecheck()
-			{ recheck = false; }
-
+			//returns true when i has not been eliminated as
+			// a possbility for this GridSquare
 			public bool isPossible(int i)
 			{ return possibilities[i]; }
 
-			//returns true if eliminate changed cell
+			//eliminate i as a possibility
+			// returns true if doing so altered the state of this
 			public bool eliminate(int i)
 			{
 				if (knownValue != i)
@@ -247,7 +255,6 @@ namespace SudokuSolver
 					if (possibilities[i]) //it was listed as possible before
 					{
 						possList.Remove(i);
-						recheck = true;
 						possibilities[i] = false;
 						if (PossibilityCount == 0)
 							solveType = SolveType.Invalid;
@@ -260,11 +267,13 @@ namespace SudokuSolver
 				return false;
 			}
 
+			//number of values that have not been eliminated
 			public int PossibilityCount
 			{
 				get { return possList.Count; }
 			}
 
+			//returns a formatted string listing all remaining possibilities
 			public string PossibilityString
 			{
 				get
@@ -277,22 +286,30 @@ namespace SudokuSolver
 				}
 			}
 
+			//Set of possibility permutations that have not been eliminated
 			internal PossibilitySet SetList
 			{
 				get
 				{
-					return setList; //TODO? refactor to not provide full access to member? This helper class is private to SudokuGrid class...
+					//Yes, this gives access to a private member, but it can only be accessed from SudokuGrid class.
+					// Not ideal, but copying it would be too expensive.
+					return setList;
 				}
 			}
 
+			//Set of individual values that have not been eliminated
 			internal List<int> PossibilityList
 			{
 				get
 				{
-					return possList; //TODO? refactor to not provide full access to member? This helper class is private to SudokuGrid class...
+					//Yes, this gives access to a private member, but it can only be accessed from SudokuGrid class.
+					// Not ideal, but copying it would be too expensive.
+					return possList;
 				}
 			}
 
+			//returns true when this is a buddy of g
+			// A buddy is a square that has a row, column or box in common.
 			public bool isBuddy(gridSquare g)
 			{
 				if (X == g.X || Y == g.Y)
@@ -303,7 +320,9 @@ namespace SudokuSolver
 			}
 		}
 
-
+		/// <summary>
+		/// Instantiate a blank SudokuGrid.
+		/// </summary>
 		public SudokuGrid()
 		{
 			solveGrid = new gridSquare[9, 9];
@@ -315,6 +334,12 @@ namespace SudokuSolver
 					solveGrid[i, j] = new gridSquare(i, j);
 				}
 			}
+
+			setUnsolvedValuesToInitialState();
+		}
+
+		private void setUnsolvedValuesToInitialState()
+		{
 			//start with all values unsolved
 			HashSet<int> temp = new HashSet<int> { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 			unsolvedValues = new HashSet<int>[3, 9]; //3 types of section, nine of each type
@@ -326,6 +351,10 @@ namespace SudokuSolver
 			}
 		}
 
+		/// <summary>
+		/// Copy constructor. Does a deep copy.
+		/// </summary>
+		/// <param name="toCopy">instance to copy</param>
 		public SudokuGrid(SudokuGrid toCopy)
 		{
 			solveGrid = new gridSquare[9, 9];
@@ -338,7 +367,7 @@ namespace SudokuSolver
 				}
 			}
 
-			unsolvedValues = new HashSet<int>[3, 9]; //3 types of section, nine of each type
+			unsolvedValues = new HashSet<int>[3, 9]; //3 types of section (row, col, box), nine of each type
 			for (int i = 0; i < 9; i++)
 			{
 				unsolvedValues[(int)iterateBy.Box, i] = new HashSet<int>(toCopy.unsolvedValues[0, i]);
@@ -347,14 +376,16 @@ namespace SudokuSolver
 			}
 		}
 
+		//the 9x9 sudoku grid
 		private gridSquare[,] solveGrid;
-		private HashSet<int>[,] unsolvedValues; //track what values each section has remaining to solve
+		//track what values each section has remaining to solve
+		private HashSet<int>[,] unsolvedValues;
 
 		/// <summary>
 		/// access sqaures by which box they are in and which square in the box
 		/// to allow simple iteration by box
 		/// </summary>
-		/// <param name="box">which box, 0-8</param>
+		/// <param name="box">which box, 0-8 (order is arbitrary, but fixed)</param>
 		/// <param name="square">which square in that box, 0-8</param>
 		/// <returns>gridSquare that matches that location</returns>
 		private gridSquare boxCoords(int box, int square)
@@ -406,9 +437,9 @@ namespace SudokuSolver
 		/// <summary>
 		/// Accesses solveGrid by selected iterateBy type
 		/// </summary>
-		/// <param name="iter">type of access coordinate converstion</param>
-		/// <param name="section">which box, col or row</param>
-		/// <param name="square">which square of that section</param>
+		/// <param name="iter">type of access coordinate conversion (box, col or row)</param>
+		/// <param name="section">which section of that type (0-8)</param>
+		/// <param name="square">which square of that section (0-8)</param>
 		/// <returns>gridSquare that matches that location</returns>
 		private gridSquare iterCoords(iterateBy iter, int section, int square)
 		{
@@ -426,15 +457,21 @@ namespace SudokuSolver
 		}
 
 		/// <summary>
-		/// index access to known values
+		/// index style access to known values
 		/// </summary>
 		/// <param name="x">x index, 0-8</param>
 		/// <param name="y">y  index, 0-8</param>
 		/// <returns>solved value 1-9, or 0 when unknown</returns>
 		public int this[int x, int y]
 		{
-			//@TODO: validate all parameters
-			get { return solveGrid[x, y].KnownValue; }
+			get
+			{
+				if (x < 0 || x > 8)
+					throw new IndexOutOfRangeException();
+				if (y < 0 || y > 8)
+					throw new IndexOutOfRangeException();
+				return solveGrid[x, y].KnownValue;
+			}
 		}
 
 		/// <summary>
@@ -446,7 +483,13 @@ namespace SudokuSolver
 		/// <returns>true if value was accepted</returns>
 		public bool setKnownValue(int x, int y, int value)
 		{
-			//@TODO: validate all parameters
+			if (x < 0 || x > 8)
+				throw new IndexOutOfRangeException();
+			if (y < 0 || y > 8)
+				throw new IndexOutOfRangeException();
+			if (value < 1 || value > 9)
+				throw new ArgumentOutOfRangeException();
+
 			//validate input, but don't try to solve
 			if (solveGrid[x, y].KnownValue == value)
 				return true; //nothing to do
@@ -466,11 +509,23 @@ namespace SudokuSolver
 			return false;
 		}
 
+		/// <summary>
+		/// Get the solve type of a particular grid square
+		/// </summary>
+		/// <param name="x">x coordinate of grid square (0-8)</param>
+		/// <param name="y">y coordinate of grid square (0-8)</param>
+		/// <returns>SolveType of requested grid square </returns>
 		public SolveType solveType(int x, int y)
 		{
 			return solveGrid[x, y].solveType;
 		}
 
+		/// <summary>
+		/// Creates a formatted string listing all remaining possibilities of a particular grid square
+		/// </summary>
+		/// <param name="x">x coordinate of grid square (0-8)</param>
+		/// <param name="y">y coordinate of grid square (0-8)</param>
+		/// <returns>String of possibilities for requested grid square </returns>
 		public String PossibilityString(int x, int y)
 		{
 			return solveGrid[x, y].PossibilityString;
@@ -480,6 +535,8 @@ namespace SudokuSolver
 		private void eliminate(int x, int y)
 		{
 			int val = solveGrid[x, y].KnownValue;
+			if (val == 0)
+				throw new InvalidOperationException("Cannot eliminate unkown value");
 			//eliminate value across its row, col
 			for (int i = 0; i < 9; i++)
 			{
@@ -488,10 +545,12 @@ namespace SudokuSolver
 			}
 			//eliminate value in its square
 			for (int i = x - x % 3; i < x - x % 3 + 3; i++)
+			{
 				for (int j = y - y % 3; j < y - y % 3 + 3; j++)
 				{
 					solveGrid[i, j].eliminate(val);
 				}
+			}
 		}
 
 		/// <summary>
@@ -500,7 +559,17 @@ namespace SudokuSolver
 		/// </summary>
 		public void dubug_resetOptimizations()
 		{
-			//TODO:reset any cached optimizations for testing purposes.
+			//There aren't any "cached" values as such, but all eliminations can be reset
+			// to initial state. If any are introduced they should be added here.
+			for (int i = 0; i < 9; i++)
+			{
+				for (int j = 0; j < 9; j++)
+				{
+					if (solveGrid[i, j].PossibilityCount != 1)
+						solveGrid[i, j].setToInitialState();
+				}
+			}
+			setUnsolvedValuesToInitialState();
 		}
 
 		/// <summary>
@@ -515,36 +584,32 @@ namespace SudokuSolver
 			{
 				madeIterationChanges = false;
 
-				//Eliminations (could be done in KnowValue Set, but then unchecking Autosolve wouldn't completly work.)
-				madeIterationChanges = possibilityEliminationScan();
+				//Go through and attempt each algorithm in turn
 
-				//placement eliminations
-				madeIterationChanges |= placementEliminationScan();
+				madeIterationChanges = singlePossibilityScan();
 
-				// hidden set revealing
+				madeIterationChanges |= singlePlacementScan();
+
 				madeIterationChanges |= hiddenSetScan();
 
-				//set elimination
 				madeIterationChanges |= matchedSetEliminationScan();
 
-				//line/box elimination
 				madeIterationChanges |= lineBoxEliminationScan();
 
-				//X wing elimination
 				madeIterationChanges |= xwingEliminationScan();
 
-				//Y wing elimination
 				madeIterationChanges |= ywingEliminationScan();
 
 				//set return value
 				if (madeIterationChanges)
 					madeChanges = true;
-			} while (madeIterationChanges == true);
+			} while (madeIterationChanges == true); //Repeat until no further progress is made
 
 			return madeChanges;
 		}
 
-		private bool possibilityEliminationScan()
+		//scan for single possibilities and set as known
+		private bool singlePossibilityScan()
 		{
 			bool madeChanges = false;
 			bool madeIterationChanges;
@@ -552,7 +617,7 @@ namespace SudokuSolver
 			{
 				madeIterationChanges = false;
 
-				//Eliminations (could be done in KnowValue Set, but then unchecking Autosolve wouldn't completly work.)
+				// This could have been done in KnownValue{Set}, but then Autosolve could not be turned off completely.
 				for (int i = 0; i < 9; i++)
 				{
 					for (int j = 0; j < 9; j++)
@@ -565,22 +630,27 @@ namespace SudokuSolver
 							solveGrid[i, j].solveType = SolveType.PossibilityElimination;
 							madeIterationChanges = true;
 						}
-
 					}
 				}
 
 				//set return value
 				if (madeIterationChanges)
 					madeChanges = true;
-			} while (madeIterationChanges == true);
+			} while (madeIterationChanges == true); //this is very cheap, keep doing it till it stops yeilding results
 
 			return madeChanges;
 		}
 
-		private bool placementEliminationScan()
+		//scan for instances were no other square can be a particular value and set as known
+		private bool singlePlacementScan()
 		{
+			//NOTE: technically this algorithm is the same as finding a "hidden matched set" of size 1 and then later
+			// finding the revealed single possibility. That means that if singltons were not removed from PossibilitySet,
+			// this function could actually be removed. HOWEVER, treating it as a special case here and removing
+			// singletons from PossibilitySet is far more efficient.
+
 			bool madeChanges = false;
-			//don't loop inside this one. it's more expensive than eliminationScan and will be looped back to again if anything changes //TODO check if should loop
+			//don't loop inside this one. it's slightly more expensive than eliminationScan and will be looped back to again if anything changes
 
 			//check by each section type
 			foreach (iterateBy iterType in Enum.GetValues(typeof(iterateBy)))
@@ -625,6 +695,7 @@ namespace SudokuSolver
 			return madeChanges;
 		}
 
+		//scan for hidden sets and eliminate possibilities to reveal the matched set
 		private bool hiddenSetScan()
 		{
 			bool madeChanges = false;
@@ -688,6 +759,7 @@ namespace SudokuSolver
 			return madeChanges;
 		}
 
+		//scan for and use aligned matched sets to eliminate other possibilities
 		private bool matchedSetEliminationScan()
 		{
 			bool madeChanges = false;
@@ -702,7 +774,7 @@ namespace SudokuSolver
 				{
 					if (unsolvedValues[(int)iterType, s].Count == 0)
 					{
-						continue; //section already completly solved
+						continue; //section already completely solved
 					}
 					PossibilitySet sectionPossibilities = new PossibilitySet(unsolvedValues[(int)iterType, s], 8);
 					foreach (HashSet<int> set in sectionPossibilities)
@@ -747,9 +819,10 @@ namespace SudokuSolver
 			return madeChanges;
 		}
 
-		//most eliminations that this finds are already found by matchedSetEliminationScan, but not all.
+		//find eliminations based on the intersection of a line (row or col) and a box
 		private bool lineBoxEliminationScan()
 		{
+			//most eliminations that this finds are already found by matchedSetEliminationScan, but not all.
 			bool madeChanges = false;
 
 			//if all instances of a digit in the current box are in a single row/col
@@ -842,6 +915,7 @@ namespace SudokuSolver
 			return madeChanges;
 		}
 
+		//scan for and use standard X-Wing elimination method
 		private bool xwingEliminationScan()
 		{
 			bool madeChanges = false;
@@ -850,6 +924,7 @@ namespace SudokuSolver
 			for (int val = 1; val <= 9; val++)
 			{
 				//scan for a column that contains exactly 2 squares where val is possible
+				//TODO: track this information through member variables instead of recalculating
 				for (int x1 = 0; x1 < 8; x1++)
 				{
 					int col1 = -1;
@@ -902,7 +977,7 @@ namespace SudokuSolver
 								break;
 							}
 						}
-						//no matching columns found or only one column matched. continue to next val
+						//no matching columns found or only one place in column matched. continue to next val
 						if (col1 == -1 || col2 == -1)
 							continue;
 
@@ -947,7 +1022,7 @@ namespace SudokuSolver
 						// result found. search for matching row, starting on the next row
 						for (int y2 = row1 + 1; y2 < 9; y2++)
 						{
-							//scan this column for the two values, in the correct places
+							//scan this row for the two values, in the correct places
 							count = 0;
 							for (int x = 0; x < 9; x++)
 							{
@@ -959,7 +1034,7 @@ namespace SudokuSolver
 									}
 									else
 									{
-										count = -1; //this column has a match out of place. force count to error state
+										count = -1; //this row has a match out of place. force count to error state
 										break;
 									}
 								}
@@ -971,11 +1046,11 @@ namespace SudokuSolver
 								break;
 							}
 						}
-						//no matching columns found or only one column matched. continue to next val
+						//no matching rows found or only one row matched. continue to next val
 						if (row1 == -1 || row2 == -1)
 							continue;
 
-						//found exactly 2 columns with 2 squares with val. eliminate val from all other rows
+						//found exactly 2 rows with 2 squares with val. eliminate val from all other rows
 						for (int y = 0; y < 9; y++)
 						{
 							if (y == row1 || y == row2)
@@ -993,12 +1068,13 @@ namespace SudokuSolver
 			return madeChanges;
 		}
 
+		//scan for and use standard Y-Wing elimination method
 		private bool ywingEliminationScan()
 		{
 			bool madeChanges = false;
-			//don't loop inside this one. it's more expensive than eliminationScan and will be looped back to again if anything changes //TODO check if should loop
+			//don't loop inside this one; it's too expensive
 
-			//fill out a list with all gridsquares that contain only a pair of possibitlies (this will be faster than scanning entire grid for each pair combo.)
+			//fill out a list with all gridsquares that contain only a pair of possibilities (this will be faster than scanning entire grid for each pair combo.)
 			List<gridSquare> pairs = new List<gridSquare>();
 			for (int i = 0; i < 9; i++)
 			{
